@@ -1,33 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Paketti.Contexts;
+using Paketti.Extensions;
+using Paketti.Logging;
 
-namespace Paketti
+namespace Paketti.Utilities
 {
-    public class DependencyWalker
+    public class DependencyWalker :
+        IDependencyWalker
     {
+        private readonly ILog _log;
         private readonly ProjectContext _project;
 
-        public DependencyWalker(ProjectContext projectContext)
+        public DependencyWalker(ProjectContext projectContext, ILog log)
         {
             _project = projectContext ?? throw new ArgumentNullException(nameof(projectContext));
+            _log = log ?? throw new ArgumentException(nameof(log));
         }
 
         public IEnumerable<TypeContext> GetTypeDependencies(DelegateContext del)
         {
             var result =
                 //The return type of the delegate
-                new TypeContext[] { new TypeContext(del.Symbol.DelegateInvokeMethod.ReturnType, del.Compilation, del.SemanticModel) }
+                new TypeContext[] { new TypeContext(del.Symbol.DelegateInvokeMethod.ReturnType, del.SemanticModel) }
                 //The type of the delegate's parameters
                 .Union(
                     del.Symbol.DelegateInvokeMethod.Parameters
-                    .Select(x => new TypeContext(x.Type, del.Compilation, del.SemanticModel))
+                    .Select(x => new TypeContext(x.Type, del.SemanticModel))
                 )
                 .Distinct();
 
@@ -48,7 +51,7 @@ namespace Paketti
 
         public IEnumerable<TypeContext> GetTypeDependencies(VariableContext variable)
         {
-            var typeContext = new TypeContext(variable.Symbol.Type, variable.Compilation, variable.SemanticModel);
+            var typeContext = new TypeContext(variable.Symbol.Type, variable.SemanticModel);
 
             var result =
                 //The type of the variable itself
@@ -64,14 +67,14 @@ namespace Paketti
         {
             var result =
                 //The type of the constructor's parameters
-                ctr.Symbol.Parameters.Select(x => new TypeContext(x.Type, ctr.Compilation, ctr.SemanticModel))
+                ctr.Symbol.Parameters.Select(x => new TypeContext(x.Type, ctr.SemanticModel))
                 //The types directly mentioned in the body
                 .Union(
                     GetBodyDeclaredTypes(ctr.Declaration, ctr.SemanticModel)
-                    .Select(x => new TypeContext(x, ctr.Compilation, ctr.SemanticModel))
+                    .Select(x => new TypeContext(x, ctr.SemanticModel))
                 )
                 //The local methods and properties mentioned in the body (which themselves may have dependencies)
-                .Union(GetBodyInvocationSymbols(ctr.Declaration, ctr.Compilation, ctr.SemanticModel))
+                .Union(GetBodyInvocationSymbols(ctr.Declaration, ctr.SemanticModel))
                 .Distinct();
 
             return result;
@@ -79,40 +82,43 @@ namespace Paketti
 
         public IEnumerable<TypeContext> GetTypeDependencies(MethodContext method)
         {
-            var result =
-                //The method's return type
-                new TypeContext[] { new TypeContext(method.Declaration.ReturnType, method.Compilation, method.SemanticModel) }
-                //The type of the method's parameters
-                .Union(
-                    method
-                    .Symbol
-                    .Parameters
-                    .Select(x => new TypeContext(x.Type, method.Compilation, method.SemanticModel))
-                )
-                //The types directly mentioned in the body
-                .Union(
-                    GetBodyDeclaredTypes(method.Declaration, method.SemanticModel)
-                    .Select(x => new TypeContext(x, method.Compilation, method.SemanticModel))
-                )
-                //The local methods and properties mentioned in the body (which themselves may have dependencies)
-                .Union(GetBodyInvocationSymbols(method.Declaration, method.Compilation, method.SemanticModel))
-                .Distinct();
+            using (_log.LogStep($"{nameof(DependencyWalker)}.{nameof(GetTypeDependencies)}.Method"))
+            {
+                var result =
+                    //The method's return type
+                    new TypeContext[] { new TypeContext(method.Declaration.ReturnType, method.SemanticModel) }
+                    //The type of the method's parameters
+                    .Union(
+                        method
+                        .Symbol
+                        .Parameters
+                        .Select(x => new TypeContext(x.Type, method.SemanticModel))
+                    )
+                    //The types directly mentioned in the body
+                    .Union(
+                        GetBodyDeclaredTypes(method.Declaration, method.SemanticModel)
+                        .Select(x => new TypeContext(x, method.SemanticModel))
+                    )
+                    //The local methods and properties mentioned in the body (which themselves may have dependencies)
+                    .Union(GetBodyInvocationSymbols(method.Declaration, method.SemanticModel))
+                    .Distinct();
 
-            return result;
+                return result;
+            }
         }
 
         public IEnumerable<TypeContext> GetTypeDependencies(PropertyContext property)
         {
             var result =
                 //The property's return type
-                new TypeContext[] { new TypeContext(property.Declaration.Type, property.Compilation, property.SemanticModel) }
+                new TypeContext[] { new TypeContext(property.Declaration.Type, property.SemanticModel) }
                 //The types directly mentioned in the body
                 .Union(
                     GetBodyDeclaredTypes(property.Declaration, property.SemanticModel)
-                    .Select(x => new TypeContext(x, property.Compilation, property.SemanticModel))
+                    .Select(x => new TypeContext(x, property.SemanticModel))
                 )
                 //The local methods and properties mentioned in the body (which themselves may have dependencies)
-                .Union(GetBodyInvocationSymbols(property.Declaration, property.Compilation, property.SemanticModel))
+                .Union(GetBodyInvocationSymbols(property.Declaration, property.SemanticModel))
                 .Distinct();
 
             return result;
@@ -190,38 +196,9 @@ namespace Paketti
             }
 
             //investigate
-            Debugger.Break();
+            //Debugger.Break();
 
             return new TypeContext[] { };
-        }
-
-        private IEnumerable<TypeContext> GetBodyInvocationSymbols(SyntaxNode node, CSharpCompilation compilation, SemanticModel semanticModel)
-        {
-            if (node == null) throw new ArgumentException(nameof(node));
-            if (compilation == null) throw new ArgumentException(nameof(compilation));
-            if (semanticModel == null) throw new ArgumentException(nameof(semanticModel));
-
-            // Find the Paketti types which are hidden within local properties and/or functions.
-
-            /* example situation, SomeDependencyType is another type which is required by SomeFunction, but it's never used within SomeFunction.
-             * SomeFunction actually depends on { Type, string, SomeDependencyType }
-             *
-             * string SomeProperty
-             *      => SomeDependencyType.ToString()
-             *
-             * string SomeFunction()
-             *      => SomeProperty;
-             */
-            var r = node
-                .DescendantNodes()
-                .Select(x => semanticModel.GetSymbolInfo(x).Symbol)
-                .OnlyValues()
-                .SelectMany(x => x.DeclaringSyntaxReferences)
-                .Select(x => x.GetSyntax())
-                .SelectMany(x => FindContextDependencies(x))
-                .Distinct();
-
-            return r;
         }
 
         private IEnumerable<ITypeSymbol> GetBodyDeclaredTypes(SyntaxNode node, SemanticModel semanticModel)
@@ -262,6 +239,34 @@ namespace Paketti
                 .Where(x => x != null && x.Kind != SymbolKind.ErrorType); //ErrorType kind is not allowed by TypeContext
 
             return result;
+        }
+
+        private IEnumerable<TypeContext> GetBodyInvocationSymbols(SyntaxNode node, SemanticModel semanticModel)
+        {
+            if (node == null) throw new ArgumentException(nameof(node));
+            if (semanticModel == null) throw new ArgumentException(nameof(semanticModel));
+
+            // Find the Paketti types which are hidden within local properties and/or functions.
+
+            /* example situation, SomeDependencyType is another type which is required by SomeFunction, but it's never used within SomeFunction.
+             * SomeFunction actually depends on { Type, string, SomeDependencyType }
+             *
+             * string SomeProperty
+             *      => SomeDependencyType.ToString()
+             *
+             * string SomeFunction()
+             *      => SomeProperty;
+             */
+            var r = node
+                .DescendantNodes()
+                .Select(x => semanticModel.GetSymbolInfo(x).Symbol)
+                .OnlyValues()
+                .SelectMany(x => x.DeclaringSyntaxReferences)
+                .Select(x => x.GetSyntax())
+                .SelectMany(x => FindContextDependencies(x))
+                .Distinct();
+
+            return r;
         }
     }
 }

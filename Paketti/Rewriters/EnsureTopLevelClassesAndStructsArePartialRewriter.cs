@@ -1,42 +1,49 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Paketti.Contexts;
+using Paketti.Extensions;
+using Paketti.Logging;
 
 namespace Paketti.Rewriters
 {
-    public partial class EnsureTopLevelClassesAndStructsArePartialRewriter :
+    internal class EnsureTopLevelClassesAndStructsArePartialRewriter :
         IRewriter
     {
         public bool ShouldRecompileToValidate
             => true;
 
-        public Document Rewrite(DocumentContext documentContext)
+        public Result<Document> Rewrite(DocumentContext documentContext, ILog log)
         {
-            var old2New = new Dictionary<SyntaxNode, SyntaxNode>();
+            using (log.LogStep($"{nameof(EnsureTopLevelClassesAndStructsArePartialRewriter)}({documentContext.Name})"))
+            {
+                return
+                    new DocumentState(documentContext)
+                    .AlterDocument(doc =>
+                    {
+                        var old2New = new Dictionary<SyntaxNode, SyntaxNode>();
 
-            var classesWithoutPartial = documentContext.Document
-                .GetClassesTopLevel()
-                .Where(x => !x.IsPartial());
+                        var classesWithoutPartial = doc
+                            .GetClassesTopLevel()
+                            .Where(x => !x.IsPartial());
 
-            foreach (var cls in classesWithoutPartial)
-                old2New.Add(cls, cls.AddPartial());
+                        foreach (var cls in classesWithoutPartial)
+                            old2New.Add(cls, cls.AddPartial());
 
-            var structsWithoutPartial = documentContext.Document
-                .GetStructsTopLevel()
-                .Where(x => !x.IsPartial());
+                        var structsWithoutPartial = doc
+                            .GetStructsTopLevel()
+                            .Where(x => !x.IsPartial());
 
-            foreach (var str in structsWithoutPartial)
-                old2New.Add(str, str.AddPartial());
+                        foreach (var str in structsWithoutPartial)
+                            old2New.Add(str, str.AddPartial());
 
-            var newRoot = documentContext.Document
-                .GetSyntaxRootAsync().Result
-                .ReplaceNodes(old2New.Keys, (old, _) => old2New[old]);
-
-            var result = documentContext.Document
-                .WithSyntaxRoot(newRoot);
-
-            return result;
+                        return
+                            doc
+                            .AlterRoot(root => root.ReplaceNodes(old2New.Keys, (old, _) => old2New[old]));
+                    })
+                    .Document;
+            }
         }
     }
 }

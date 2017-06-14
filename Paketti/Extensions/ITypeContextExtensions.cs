@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Paketti.Contexts;
 
-namespace Paketti
+namespace Paketti.Extensions
 {
-    public static class ITypeDependentExtensions
+    public static class ITypeContextExtensions
     {
         /// <summary>
         /// Gets only the type dependencies which are in the local project.

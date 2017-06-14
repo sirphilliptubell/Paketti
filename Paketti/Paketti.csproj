@@ -7,12 +7,14 @@
   <ItemGroup>
     <Compile Remove="Rewriters\DeleteExtensionMethodsRewriter.cs" />
     <Compile Remove="Rewriters\DeleteFieldsRewriter.cs" />
+    <Compile Remove="Rewriters\PackageExtensionMethodsRewriter.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotNetFunctional" Version="1.0.6" />
+    <PackageReference Include="DotNetFunctional" Version="1.0.7.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.2.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="1.1.1" />
   </ItemGroup>
 
   <PropertyGroup>
