@@ -9,7 +9,7 @@ namespace Paketti.Rewriters
 {
     public interface IRewriter
     {
-        Task<Document> Rewrite(DocumentContext document);
+        Document Rewrite(DocumentContext document);
 
         /// <summary>
         /// Gets a value indicating whether the project should be recompiled to validate the changes

@@ -14,7 +14,7 @@ namespace Paketti.Rewriters
         public bool ShouldRecompileToValidate
             => true;
 
-        public async Task<Document> Rewrite(DocumentContext document)
+        public Document Rewrite(DocumentContext document)
         {
             var fields = document
                 .GetClassesAndStructs()

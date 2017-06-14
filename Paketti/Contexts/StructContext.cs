@@ -11,7 +11,7 @@ namespace Paketti.Contexts
     public class StructContext :
         IClassOrStruct
     {
-        public StructDeclarationSyntax StructDeclaration { get; }
+        public StructDeclarationSyntax Declaration { get; }
 
         public CSharpCompilation Compilation { get; }
 
@@ -21,7 +21,7 @@ namespace Paketti.Contexts
 
         public StructContext(StructDeclarationSyntax structDeclaration, CSharpCompilation compilation, SemanticModel semanticModel)
         {
-            StructDeclaration = structDeclaration ?? throw new ArgumentNullException(nameof(structDeclaration));
+            Declaration = structDeclaration ?? throw new ArgumentNullException(nameof(structDeclaration));
             Compilation = compilation ?? throw new ArgumentException(nameof(compilation));
             SemanticModel = semanticModel ?? throw new ArgumentException(nameof(semanticModel));
 
@@ -42,6 +42,12 @@ namespace Paketti.Contexts
         public IEnumerable<VariableContext> Fields { get; }
 
         public IEnumerable<ConstructorContext> Constructors { get; }
+
+        public bool IsStatic
+            => Symbol.IsStatic;
+
+        public bool IsPartial
+            => Declaration.IsPartial();
 
         public override string ToString()
         {

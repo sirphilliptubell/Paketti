@@ -46,6 +46,9 @@ namespace Paketti.Contexts
         public bool IsStatic
             => Symbol.IsStatic;
 
+        public bool IsPartial
+            => Declaration.IsPartial();
+
         public override string ToString()
         {
             var stat = IsStatic ? "static " : string.Empty;

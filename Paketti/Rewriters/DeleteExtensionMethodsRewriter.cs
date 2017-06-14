@@ -14,7 +14,7 @@ namespace Paketti.Rewriters
         public bool ShouldRecompileToValidate
             => true;
 
-        public async Task<Document> Rewrite(DocumentContext document)
+        public Document Rewrite(DocumentContext document)
         {
             var extensions = document.GetExtensionMethods().Select(x => x.Declaration).ToList();
             var root = document.SyntaxRoot;

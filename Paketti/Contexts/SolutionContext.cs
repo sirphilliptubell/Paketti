@@ -6,11 +6,32 @@ namespace Paketti.Contexts
 {
     public class SolutionContext
     {
-        public Result<ProjectContext> GetProjectModel(Solution solution)
+        public Workspace Workspace { get; }
+        public ProjectContext ProjectContext { get; }
+
+        private SolutionContext(Workspace workspace, ProjectContext projectContext)
+        {
+            Workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
+            ProjectContext = projectContext ?? throw new ArgumentNullException(nameof(projectContext));
+        }
+
+        public static Result<SolutionContext> Create(Workspace workspace)
+        {
+            if (workspace == null) throw new ArgumentException(nameof(workspace));
+
+            var projectResult = GetProjectModel(workspace.CurrentSolution);
+
+            if (projectResult.IsFailure)
+                return Result.Fail<SolutionContext>(projectResult.Error);
+            else
+                return Result.Ok(new SolutionContext(workspace, projectResult.Value));
+        }
+
+        private static Result<ProjectContext> GetProjectModel(Solution solution)
             => GetProject(solution) //get the single project in the solution
             .OnSuccess(ProjectContext.Create); //convert to a context
 
-        public Result<Project> GetProject(Solution solution)
+        private static Result<Project> GetProject(Solution solution)
         {
             if (solution == null) throw new ArgumentNullException(nameof(solution));
 

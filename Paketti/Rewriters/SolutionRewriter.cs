@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Paketti.Contexts;
 
@@ -11,8 +9,9 @@ namespace Paketti.Rewriters
     public class SolutionRewriter
     {
         private readonly IReadOnlyCollection<IRewriter> _rewriters = new IRewriter[] {
+            new EnsureTopLevelClassesAndStructsArePartial()
             //new DeleteExtensionMethodsRewriter(),
-            new DeleteFieldsRewriter()
+            //new DeleteFieldsRewriter()
         };
 
         private readonly ICompiler _compiler;
@@ -22,23 +21,43 @@ namespace Paketti.Rewriters
             _compiler = compiler ?? throw new ArgumentException(nameof(compiler));
         }
 
-        public Result<Workspace> Rewrite(Workspace workspace)
+        public Result Rewrite(Workspace workspace)
         {
             var modifiedSolution = workspace.CurrentSolution;
 
-            var badResults = new List<Result>();
+            var solutionContext = SolutionContext.Create(workspace);
+            if (solutionContext.IsFailure)
+                return Result.Fail("Could not get SolutionContext before rewriting: " + solutionContext.Error);
 
-            foreach (var rewriter in _rewriters)
+            var preCheck = _compiler.Compile(solutionContext.Value.ProjectContext);
+            if (preCheck.IsFailure)
+                return Result.Fail("Project didn't compile before rewriting anything: " + preCheck.Error);
+
+            var rewriteResults =
+                Result.CombineAll(
+                    _rewriters
+                    .Select(rewriter =>
+                    {
+                        var rewriteResult = Rewrite(modifiedSolution, rewriter);
+
+                        //if the rewrite was successful, use the new modified solution in the next rewrite
+                        if (rewriteResult.IsSuccess)
+                            modifiedSolution = rewriteResult.Value;
+
+                        return rewriteResult;
+                    })
+                );
+
+            if (rewriteResults.IsFailure)
+                return rewriteResults.ToResult();
+            else
             {
-                var rewriteSolutionResult = Rewrite(modifiedSolution, rewriter);
-
-                if (rewriteSolutionResult.IsFailure)
-                    badResults.Add(rewriteSolutionResult.ToResult());
+                var appyResult = workspace.TryApplyChanges(modifiedSolution);
+                if (!appyResult)
+                    return Result.Fail("Workspace.TryApplyChanges() failed.");
                 else
-                    modifiedSolution = rewriteSolutionResult.Value;
+                    return Result.Ok();
             }
-
-            return Result.CombineAll(badResults).ToTypedResult(modifiedSolution.Workspace);
         }
 
         private Result<Solution> Rewrite(Solution originalSolution, IRewriter rewriter)
@@ -81,7 +100,7 @@ namespace Paketti.Rewriters
             if (originalDocument.Document.SourceCodeKind != SourceCodeKind.Regular)
                 return Result.Ok(originalDocument);
 
-            var newDoc = rewriter.Rewrite(originalDocument).Result;
+            var newDoc = rewriter.Rewrite(originalDocument);
 
             var newProject = newDoc.Project;
             var newProjectContext = ProjectContext.Create(newProject);
