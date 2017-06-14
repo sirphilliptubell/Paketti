@@ -5,6 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Rewriters\DeleteExtensionMethodsRewriter.cs" />
+    <Compile Remove="Rewriters\DeleteFieldsRewriter.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DotNetFunctional" Version="1.0.6" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="2.2.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="2.2.0" />

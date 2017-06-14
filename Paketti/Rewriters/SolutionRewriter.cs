@@ -9,7 +9,7 @@ namespace Paketti.Rewriters
     public class SolutionRewriter
     {
         private readonly IReadOnlyCollection<IRewriter> _rewriters = new IRewriter[] {
-            new EnsureTopLevelClassesAndStructsArePartial()
+            new EnsureTopLevelClassesAndStructsArePartialRewriter()
             //new DeleteExtensionMethodsRewriter(),
             //new DeleteFieldsRewriter()
         };

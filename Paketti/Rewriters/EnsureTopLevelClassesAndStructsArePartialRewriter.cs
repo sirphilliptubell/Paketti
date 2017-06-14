@@ -5,7 +5,7 @@ using Paketti.Contexts;
 
 namespace Paketti.Rewriters
 {
-    public partial class EnsureTopLevelClassesAndStructsArePartial :
+    public partial class EnsureTopLevelClassesAndStructsArePartialRewriter :
         IRewriter
     {
         public bool ShouldRecompileToValidate
