@@ -7,6 +7,10 @@ using Paketti.Utilities;
 
 namespace Paketti.Packaging
 {
+    /// <summary>
+    /// Creates packages.
+    /// </summary>
+    /// <seealso cref="Paketti.Packaging.IPackager" />
     public class Packager :
         IPackager
     {
@@ -15,21 +19,44 @@ namespace Paketti.Packaging
         private readonly IPackageStore _store;
         private readonly IDependencyWalker _walker;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Packager"/> class.
+        /// </summary>
+        /// <param name="projectContext">The project context.</param>
+        /// <param name="store">The package store.</param>
+        /// <param name="walkerFactory">The dependency walker factory.</param>
+        /// <param name="log">The log.</param>
+        /// <exception cref="System.ArgumentException">
+        /// projectContext
+        /// or
+        /// store
+        /// or
+        /// walkerFactory
+        /// or
+        /// log
+        /// </exception>
         public Packager(ProjectContext projectContext, IPackageStore store, Func<ProjectContext, IDependencyWalker> walkerFactory, ILog log)
         {
-            _projectContext = projectContext ?? throw new ArgumentException(nameof(projectContext));
             _store = store ?? throw new ArgumentException(nameof(store));
             _walker = walkerFactory?.Invoke(_projectContext) ?? throw new ArgumentException(nameof(walkerFactory));
             _log = log ?? throw new ArgumentException(nameof(log));
         }
 
-        public Result<IPackageStore> Pack()
+        /// <summary>
+        /// Packs the specified project context.
+        /// </summary>
+        /// <param name="projectContext">The project context.</param>
+        /// <returns></returns>
+        public Result<IPackageStore> Pack(ProjectContext projectContext)
         {
             PackExtensionMethods();
 
             return Result.Ok(_store);
         }
 
+        /// <summary>
+        /// Packs the extension methods of the project.
+        /// </summary>
         private void PackExtensionMethods()
         {
             using (_log.LogStep($"{nameof(Packager)}.{nameof(PackExtensionMethods)}"))

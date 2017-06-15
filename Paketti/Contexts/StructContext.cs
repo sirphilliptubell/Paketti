@@ -85,13 +85,10 @@ namespace Paketti.Contexts
             SemanticModel = semanticModel ?? throw new ArgumentException(nameof(semanticModel));
 
             Symbol = semanticModel.GetDeclaredSymbol(structDeclaration);
-
-            var contexts = structDeclaration.GetDescendantFieldsConstructorsMethodsAndProperties(semanticModel);
-
-            Properties = contexts.properties.ToList();
-            Methods = contexts.methods.ToList();
-            Fields = contexts.fields.ToList();
-            Constructors = contexts.constructors.ToList();
+            Properties = structDeclaration.GetDescendantPropertyContexts(semanticModel).ToList();
+            Methods = structDeclaration.GetDescendantMethodContexts(semanticModel).ToList();
+            Fields = structDeclaration.GetDescendantFieldContexts(semanticModel).ToList();
+            Constructors = structDeclaration.GetDescendantConstructorContexts(semanticModel).ToList();
         }
 
         /// <summary>

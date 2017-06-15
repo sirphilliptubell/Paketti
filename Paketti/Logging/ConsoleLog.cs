@@ -2,10 +2,20 @@
 
 namespace Paketti.Logging
 {
+    /// <summary>
+    /// Logs to the Console.
+    /// </summary>
+    /// <seealso cref="Paketti.Logging.ILog" />
     public class ConsoleLog : ILog
     {
         private int depth = 0;
 
+        /// <summary>
+        /// Logs the message to the console and writes the duration to
+        /// the right side of the console when the return value is disposed.
+        /// </summary>
+        /// <param name="msg">The message.</param>
+        /// <returns></returns>
         public IDisposable LogStep(string msg)
         {
             Console.Write(msg.PadLeft(msg.Length + depth));

@@ -7,7 +7,7 @@ namespace Paketti.Extensions
     public static class ITypeContextExtensions
     {
         /// <summary>
-        /// Gets only the type dependencies which are in the local project.
+        /// Filters the types to only those that are not part of the CLR and are not generic parameters.
         /// </summary>
         /// <param name="item">The item.</param>
         /// <returns></returns>

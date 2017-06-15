@@ -7,12 +7,29 @@ using Paketti.Logging;
 
 namespace Paketti.Rewriters
 {
+    /// <summary>
+    /// Removes all #region and #endregion directives from a document.
+    /// </summary>
+    /// <seealso cref="Paketti.Rewriters.IRewriter" />
     internal class RemoveRegionRewriter :
         IRewriter
     {
+        /// <summary>
+        /// Gets a value indicating whether the project should be recompiled to validate the changes
+        /// didn't break the project.
+        /// </summary>
+        /// <value>
+        /// <c>false</c>
+        /// </value>
         public bool ShouldRecompileToValidate
             => false;
 
+        /// <summary>
+        /// Rewrites the specified document context.
+        /// </summary>
+        /// <param name="documentContext">The document context.</param>
+        /// <param name="log">The log.</param>
+        /// <returns></returns>
         public Result<Document> Rewrite(DocumentContext documentContext, ILog log)
         {
             using (log.LogStep($"{nameof(RemoveRegionRewriter)}({documentContext.Name})"))

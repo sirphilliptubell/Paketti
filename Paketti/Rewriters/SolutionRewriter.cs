@@ -8,10 +8,12 @@ using Paketti.Utilities;
 
 namespace Paketti.Rewriters
 {
+    /// <summary>
+    /// Rewrites a solution.
+    /// </summary>
     public class SolutionRewriter
     {
         private readonly ICompiler _compiler;
-
         private readonly ILog _log;
 
         private readonly IReadOnlyCollection<IRewriter> _rewriters = new IRewriter[] {
@@ -19,12 +21,70 @@ namespace Paketti.Rewriters
             new RemoveRegionRewriter()
         };
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SolutionRewriter"/> class.
+        /// </summary>
+        /// <param name="compiler">The compiler.</param>
+        /// <param name="log">The logger.</param>
+        /// <exception cref="System.ArgumentException">
+        /// compiler
+        /// or
+        /// log
+        /// </exception>
         public SolutionRewriter(ICompiler compiler, ILog log)
         {
             _compiler = compiler ?? throw new ArgumentException(nameof(compiler));
             _log = log ?? throw new ArgumentException(nameof(log));
         }
 
+        /// <summary>
+        /// Takes an initial object (ex: Project),
+        /// gets a collection of intermediate values (ex: DocumentIds),
+        /// gets entries using that object and intermediate values (ex: Documents)
+        /// modifies each entry (ex: Document),
+        /// gets a new initial object from that entry (ex: Project)
+        /// repeats this process using the new initial object.
+        /// If any modification fails, a failure result is returned;
+        /// otherwise, a success result is returned with the final object.
+        /// </summary>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <typeparam name="TIntermediate">The type of the intermediate.</typeparam>
+        /// <typeparam name="TEntry">The type of the entry.</typeparam>
+        /// <param name="original">The original.</param>
+        /// <param name="getIntermediateValues">The get intermediate values.</param>
+        /// <param name="getEntry">The get entry.</param>
+        /// <param name="modifyEntry">The modify entry.</param>
+        /// <param name="getReturnValue">The get return value.</param>
+        /// <returns></returns>
+        private Result<TValue> Modify<TValue, TIntermediate, TEntry>(
+            TValue original,
+            Func<TValue, IEnumerable<TIntermediate>> getIntermediateValues,
+            Func<TValue, TIntermediate, TEntry> getEntry,
+            Func<TEntry, Result<TEntry>> modifyEntry,
+            Func<TEntry, TValue> getReturnValue)
+        {
+            TValue current = original;
+            var intermediateValues = getIntermediateValues(original);
+            foreach (var intermediateValue in intermediateValues)
+            {
+                var entry = getEntry(current, intermediateValue);
+
+                var alterEntryResult = modifyEntry(entry);
+
+                if (alterEntryResult.IsFailure)
+                    return Result.Fail<TValue>(alterEntryResult.Error);
+                else
+                    current = getReturnValue(alterEntryResult.Value);
+            }
+
+            return Result.Ok(current);
+        }
+
+        /// <summary>
+        /// Rewrites the specified workspace.
+        /// </summary>
+        /// <param name="workspace">The workspace.</param>
+        /// <returns></returns>
         public Result<Workspace> Rewrite(Workspace workspace)
         {
             var modifiedSolution = workspace.CurrentSolution;
@@ -64,30 +124,12 @@ namespace Paketti.Rewriters
             }
         }
 
-        private Result<TValue> Modify<TValue, TIntermediate, TEntry>(
-            TValue original,
-            Func<TValue, IEnumerable<TIntermediate>> getIntermediateValues,
-            Func<TValue, TIntermediate, TEntry> getEntry,
-            Func<TEntry, Result<TEntry>> modifyEntry,
-            Func<TEntry, TValue> getReturnValue)
-        {
-            TValue current = original;
-            var intermediateValues = getIntermediateValues(original);
-            foreach (var intermediateValue in intermediateValues)
-            {
-                var entry = getEntry(current, intermediateValue);
-
-                var alterEntryResult = modifyEntry(entry);
-
-                if (alterEntryResult.IsFailure)
-                    return Result.Fail<TValue>(alterEntryResult.Error);
-                else
-                    current = getReturnValue(alterEntryResult.Value);
-            }
-
-            return Result.Ok(current);
-        }
-
+        /// <summary>
+        /// Rewrites the specified solution.
+        /// </summary>
+        /// <param name="originalSolution">The solution.</param>
+        /// <param name="rewriter">The rewriter.</param>
+        /// <returns></returns>
         private Result<Solution> Rewrite(Solution originalSolution, IRewriter rewriter)
                     => Modify(
                 original: originalSolution,
@@ -110,6 +152,12 @@ namespace Paketti.Rewriters
                 },
                 getReturnValue: project => project.Solution);
 
+        /// <summary>
+        /// Rewrites the specified original project context.
+        /// </summary>
+        /// <param name="originalProjectContext">The original project context.</param>
+        /// <param name="rewriter">The rewriter.</param>
+        /// <returns></returns>
         private Result<ProjectContext> Rewrite(ProjectContext originalProjectContext, IRewriter rewriter)
             => Modify(
                 original: originalProjectContext,
@@ -122,13 +170,19 @@ namespace Paketti.Rewriters
                 },
                 getReturnValue: documentContext => documentContext.ProjectContext);
 
-        private Result<DocumentContext> Rewrite(DocumentContext originalDocument, IRewriter rewriter)
+        /// <summary>
+        /// Rewrites the specified document context.
+        /// </summary>
+        /// <param name="document">The original document.</param>
+        /// <param name="rewriter">The rewriter.</param>
+        /// <returns></returns>
+        private Result<DocumentContext> Rewrite(DocumentContext document, IRewriter rewriter)
         {
             //only rewrite .vb and .cs
-            if (originalDocument.Document.SourceCodeKind != SourceCodeKind.Regular)
-                return Result.Ok(originalDocument);
+            if (document.Document.SourceCodeKind != SourceCodeKind.Regular)
+                return Result.Ok(document);
 
-            var newDocResult = rewriter.Rewrite(originalDocument, _log);
+            var newDocResult = rewriter.Rewrite(document, _log);
             if (newDocResult.IsFailure)
                 return Result.Fail<DocumentContext>(newDocResult.Error);
             var newDoc = newDocResult.Value;
@@ -146,7 +200,7 @@ namespace Paketti.Rewriters
                         return Result.Fail<DocumentContext>(compileResult.Error);
                 }
 
-                var newDocContext = newProjectContext.Value.Documents.Where(x => x.Document.Id == originalDocument.Document.Id).Single();
+                var newDocContext = newProjectContext.Value.Documents.Where(x => x.Document.Id == document.Document.Id).Single();
                 return Result.Ok(newDocContext);
             }
         }

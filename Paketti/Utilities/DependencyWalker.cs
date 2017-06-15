@@ -10,18 +10,34 @@ using Paketti.Logging;
 
 namespace Paketti.Utilities
 {
+    /// <summary>
+    /// Gets the dependencies for various Syntax Contexts.
+    /// </summary>
+    /// <seealso cref="Paketti.Utilities.IDependencyWalker" />
     public class DependencyWalker :
         IDependencyWalker
     {
         private readonly ILog _log;
         private readonly ProjectContext _project;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DependencyWalker"/> class.
+        /// </summary>
+        /// <param name="projectContext">The project context.</param>
+        /// <param name="log">The log.</param>
+        /// <exception cref="System.ArgumentNullException">projectContext</exception>
+        /// <exception cref="System.ArgumentException">log</exception>
         public DependencyWalker(ProjectContext projectContext, ILog log)
         {
             _project = projectContext ?? throw new ArgumentNullException(nameof(projectContext));
             _log = log ?? throw new ArgumentException(nameof(log));
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a delegate.
+        /// </summary>
+        /// <param name="del"></param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(DelegateContext del)
         {
             var result =
@@ -37,6 +53,11 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a type.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(TypeContext type)
         {
             var result =
@@ -49,6 +70,11 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a variable/field.
+        /// </summary>
+        /// <param name="variable"></param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(VariableContext variable)
         {
             var typeContext = new TypeContext(variable.Symbol.Type, variable.SemanticModel);
@@ -63,6 +89,11 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a constructor.
+        /// </summary>
+        /// <param name="ctr"></param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(ConstructorContext ctr)
         {
             var result =
@@ -80,6 +111,11 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a method.
+        /// </summary>
+        /// <param name="method"></param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(MethodContext method)
         {
             using (_log.LogStep($"{nameof(DependencyWalker)}.{nameof(GetTypeDependencies)}.Method"))
@@ -107,6 +143,11 @@ namespace Paketti.Utilities
             }
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a property.
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(PropertyContext property)
         {
             var result =
@@ -124,6 +165,11 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a struct.
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(StructContext str)
         {
             var result = str.Fields.SelectMany(x => GetTypeDependencies(x))
@@ -135,6 +181,11 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Gets the type dependencies for a class.
+        /// </summary>
+        /// <param name="cls">The class.</param>
+        /// <returns></returns>
         public IEnumerable<TypeContext> GetTypeDependencies(ClassContext cls)
         {
             var result = cls.Fields.SelectMany(x => GetTypeDependencies(x))
@@ -146,6 +197,11 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Finds the context dependencies.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <returns></returns>
         private IEnumerable<TypeContext> FindContextDependencies(SyntaxNode node)
         {
             foreach (var doc in _project.Documents)
@@ -201,6 +257,17 @@ namespace Paketti.Utilities
             return new TypeContext[] { };
         }
 
+        /// <summary>
+        /// Gets the types declared within a body.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <param name="semanticModel">The semantic model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentException">
+        /// node
+        /// or
+        /// semanticModel
+        /// </exception>
         private IEnumerable<ITypeSymbol> GetBodyDeclaredTypes(SyntaxNode node, SemanticModel semanticModel)
         {
             if (node == null) throw new ArgumentException(nameof(node));
@@ -241,12 +308,23 @@ namespace Paketti.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Gets the types used within an invocation within a body.
+        /// </summary>
+        /// <param name="node">The node.</param>
+        /// <param name="semanticModel">The semantic model.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentException">
+        /// node
+        /// or
+        /// semanticModel
+        /// </exception>
         private IEnumerable<TypeContext> GetBodyInvocationSymbols(SyntaxNode node, SemanticModel semanticModel)
         {
             if (node == null) throw new ArgumentException(nameof(node));
             if (semanticModel == null) throw new ArgumentException(nameof(semanticModel));
 
-            // Find the Paketti types which are hidden within local properties and/or functions.
+            // Find the types which are hidden within local properties and/or functions.
 
             /* example situation, SomeDependencyType is another type which is required by SomeFunction, but it's never used within SomeFunction.
              * SomeFunction actually depends on { Type, string, SomeDependencyType }
