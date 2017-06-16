@@ -15,6 +15,7 @@ namespace Paketti.Contexts
     /// <seealso cref="Paketti.Contexts.IClassOrStruct" />
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class ClassContext :
+        ITypeDependent,
         IClassOrStruct
     {
         /// <summary>

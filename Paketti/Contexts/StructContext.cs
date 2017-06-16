@@ -14,6 +14,7 @@ namespace Paketti.Contexts
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class StructContext :
+        ITypeDependent,
         IClassOrStruct
     {
         /// <summary>

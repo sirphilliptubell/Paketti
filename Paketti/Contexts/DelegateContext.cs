@@ -10,7 +10,8 @@ namespace Paketti.Contexts
     /// The contextual information for a DelegateDeclaration.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class DelegateContext
+    public class DelegateContext :
+        ITypeDependent
     {
         /// <summary>
         /// Gets the delegate's declaration.

@@ -10,7 +10,8 @@ namespace Paketti.Contexts
     /// The contextual information for a PropertyDeclaration.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class PropertyContext
+    public class PropertyContext :
+        ITypeDependent
     {
         /// <summary>
         /// Gets the property declaration.

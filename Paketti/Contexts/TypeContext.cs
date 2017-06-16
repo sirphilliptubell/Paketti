@@ -13,7 +13,8 @@ namespace Paketti.Contexts
     /// The contextual information for a Type Syntax or Symbol.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class TypeContext
+    public class TypeContext :
+        ITypeDependent
     {
         /// <summary>
         /// Gets the names of Microsoft's CLR assemblies.

@@ -11,7 +11,8 @@ namespace Paketti.Contexts
     /// The contextual information for a MethodDeclaration.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class MethodContext
+    public class MethodContext :
+        ITypeDependent
     {
         /// <summary>
         /// Gets the symbol of the method.

@@ -10,7 +10,8 @@ namespace Paketti.Contexts
     /// The contextual information for a ConstructorDeclaration.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class ConstructorContext
+    public class ConstructorContext :
+        ITypeDependent
     {
         /// <summary>
         /// Gets the constructor's declaration.
@@ -50,6 +51,9 @@ namespace Paketti.Contexts
 
             Symbol = semanticModel.GetDeclaredSymbol(constructorDeclaration);
         }
+
+        public override string ToString()
+            => $".ctor for {Symbol.ContainingSymbol.Name}";
 
         private string DebuggerDisplay
             => nameof(ConstructorContext);

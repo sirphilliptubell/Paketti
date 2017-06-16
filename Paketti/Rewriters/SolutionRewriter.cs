@@ -131,7 +131,7 @@ namespace Paketti.Rewriters
         /// <param name="rewriter">The rewriter.</param>
         /// <returns></returns>
         private Result<Solution> Rewrite(Solution originalSolution, IRewriter rewriter)
-                    => Modify(
+            => Modify(
                 original: originalSolution,
                 getIntermediateValues: solution => solution.ProjectIds,
                 getEntry: (solution, projectId) => solution.GetProject(projectId),
@@ -179,7 +179,9 @@ namespace Paketti.Rewriters
         private Result<DocumentContext> Rewrite(DocumentContext document, IRewriter rewriter)
         {
             //only rewrite .vb and .cs
-            if (document.Document.SourceCodeKind != SourceCodeKind.Regular)
+            if (document.Document.SourceCodeKind != SourceCodeKind.Regular
+                || document.Document.Name.ToLowerInvariant().EndsWith(".assemblyattributes.cs")
+                || document.Document.Name.ToLowerInvariant().EndsWith(".assemblyinfo.cs"))
                 return Result.Ok(document);
 
             var newDocResult = rewriter.Rewrite(document, _log);

@@ -1,4 +1,4 @@
-﻿namespace Paketti.Packaging
+﻿namespace Paketti.Library
 {
     /// <summary>
     /// The Kind of a Package.

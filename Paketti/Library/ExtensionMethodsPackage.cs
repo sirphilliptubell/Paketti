@@ -3,25 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using Paketti.Extensions;
 
-namespace Paketti.Packaging
+namespace Paketti.Library
 {
     /// <summary>
-    /// A Paketti package.
+    /// A package of Extension Methods.
     /// </summary>
-    public class Package
+    public class ExtensionMethodsPackage :
+        IMergeablePackage<ExtensionMethodsPackage>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Package"/> class.
+        /// Initializes a new instance of the <see cref="ExtensionMethodsPackage"/> class.
         /// </summary>
         /// <param name="content">The content.</param>
         /// <param name="kind">The kind.</param>
         /// <param name="typeDependencies">The type dependencies.</param>
-        public Package(string content, PackageKind kind, IEnumerable<string> typeDependencies)
+        public ExtensionMethodsPackage(string content, IEnumerable<string> typeDependencies)
         {
             Content = content.Trim();
-            Kind = kind;
             TypeDependencies = typeDependencies.ToList();
-            Key = $"{kind} {typeDependencies.ToCommaSeparated()}";
+            Key = $"{Kind} {typeDependencies.ToCommaSeparated()}";
         }
 
         /// <summary>
@@ -46,7 +46,8 @@ namespace Paketti.Packaging
         /// <value>
         /// The package kind.
         /// </value>
-        public PackageKind Kind { get; }
+        public PackageKind Kind
+            => PackageKind.ExtensionMethods;
 
         /// <summary>
         /// Gets the types this package depends on.
@@ -54,7 +55,7 @@ namespace Paketti.Packaging
         /// <value>
         /// The type dependencies.
         /// </value>
-        public List<string> TypeDependencies { get; }
+        public IList<string> TypeDependencies { get; }
 
         /// <summary>
         /// Appends the specified package to this one.
@@ -67,14 +68,13 @@ namespace Paketti.Packaging
         /// or
         /// Package key does not match.
         /// </exception>
-        internal Package Append(Package package)
+        public ExtensionMethodsPackage MergeWith(ExtensionMethodsPackage package)
         {
             if (package.Kind != this.Kind) throw new InvalidOperationException("Package kind does not match.");
             if (package.Key != this.Key) throw new InvalidOperationException("Package key does not match.");
 
-            return new Package(
+            return new ExtensionMethodsPackage(
                 Append(this.Content, package.Content),
-                Kind,
                 TypeDependencies);
         }
 

@@ -10,7 +10,8 @@ namespace Paketti.Contexts
     /// The contextual information for a Variable or Field Declaration.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class VariableContext
+    public class VariableContext :
+        ITypeDependent
     {
         /// <summary>
         /// Gets the symbol for the variable.
@@ -63,7 +64,16 @@ namespace Paketti.Contexts
         public string Name
             => Symbol.Name;
 
-        private string DebuggerDisplay
+        /// <summary>
+        /// Returns a <see cref="System.String" /> that represents this instance.
+        /// </summary>
+        /// <returns>
+        /// A <see cref="System.String" /> that represents this instance.
+        /// </returns>
+        public override string ToString()
             => $"{Symbol.Type.ContainingNamespace.Name}.{Symbol.Type.Name} {Name}";
+
+        private string DebuggerDisplay
+            => ToString();
     }
 }
