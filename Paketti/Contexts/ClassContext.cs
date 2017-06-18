@@ -12,11 +12,11 @@ namespace Paketti.Contexts
     /// <summary>
     /// The contextual information for a ClassDeclaration.
     /// </summary>
-    /// <seealso cref="Paketti.Contexts.IClassOrStruct" />
+    /// <seealso cref="Paketti.Contexts.ITypeDeclarationContext" />
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class ClassContext :
         ITypeDependent,
-        IClassOrStruct
+        ITypeDeclarationContext
     {
         /// <summary>
         /// Gets the class declaration.
@@ -25,6 +25,14 @@ namespace Paketti.Contexts
         /// The class declaration.
         /// </value>
         public ClassDeclarationSyntax Declaration { get; }
+
+        /// <summary>
+        /// Gets the type declaration syntax.
+        /// </summary>
+        /// <value>
+        /// The declaration.
+        /// </value>
+        TypeDeclarationSyntax ITypeDeclarationContext.Declaration => this.Declaration;
 
         /// <summary>
         /// Gets the constructors.
@@ -92,10 +100,10 @@ namespace Paketti.Contexts
             SemanticModel = semanticModel ?? throw new ArgumentException(nameof(semanticModel));
 
             Symbol = semanticModel.GetDeclaredSymbol(classDeclaration);
-            Properties = classDeclaration.GetDescendantPropertyContexts(semanticModel).ToList();
-            Methods = classDeclaration.GetDescendantMethodContexts(semanticModel).ToList();
-            Fields = classDeclaration.GetDescendantFieldContexts(semanticModel).ToList();
-            Constructors = classDeclaration.GetDescendantConstructorContexts(semanticModel).ToList();
+            Properties = this.GetDescendantPropertyContexts(semanticModel).ToList();
+            Methods = this.GetDescendantMethodContexts(semanticModel).ToList();
+            Fields = this.GetDescendantFieldContexts(semanticModel).ToList();
+            Constructors = this.GetDescendantConstructorContexts(semanticModel).ToList();
         }
 
         /// <summary>
@@ -125,8 +133,19 @@ namespace Paketti.Contexts
         public override string ToString()
         {
             var stat = IsStatic ? "static " : string.Empty;
-            return $"{stat}class {Symbol.Name}";
+
+            //todo: add generic type parameters
+            return $"{stat}class {Symbol.ContainingAssembly.Name}.{Symbol.Name}<TODO>";
         }
+
+        /// <summary>
+        /// Gets the key that identifies an object.
+        /// </summary>
+        /// <value>
+        /// The object's key.
+        /// </value>
+        public string Key
+            => ToString();
 
         private string DebuggerDisplay
             => ToString();

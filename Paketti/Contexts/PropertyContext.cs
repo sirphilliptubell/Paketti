@@ -11,7 +11,8 @@ namespace Paketti.Contexts
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class PropertyContext :
-        ITypeDependent
+        ITypeDependent,
+        ITypeMemberContext
     {
         /// <summary>
         /// Gets the property declaration.
@@ -22,6 +23,14 @@ namespace Paketti.Contexts
         public PropertyDeclarationSyntax Declaration { get; }
 
         /// <summary>
+        /// Gets the declaration's syntax node.
+        /// </summary>
+        /// <value>
+        /// The declaration.
+        /// </value>
+        SyntaxNode ITypeMemberContext.Declaration => this.Declaration;
+
+        /// <summary>
         /// Gets the semantic model.
         /// </summary>
         /// <value>
@@ -30,8 +39,18 @@ namespace Paketti.Contexts
         public SemanticModel SemanticModel { get; }
 
         /// <summary>
+        /// Gets the class, struct, or interface that contains this instance.
+        /// Always has a value.
+        /// </summary>
+        /// <remarks>
+        /// Only a Maybe type because of the interface.
+        /// </remarks>
+        public Maybe<ITypeDeclarationContext> ContainingTypeContext { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PropertyContext"/> class.
         /// </summary>
+        /// <param name="containingTypeContext">The context for the type that contains this member.</param>
         /// <param name="propertyDeclaration">The property declaration.</param>
         /// <param name="semanticModel">The semantic model.</param>
         /// <exception cref="System.ArgumentNullException">
@@ -39,8 +58,10 @@ namespace Paketti.Contexts
         /// or
         /// semanticModel
         /// </exception>
-        public PropertyContext(PropertyDeclarationSyntax propertyDeclaration, SemanticModel semanticModel)
+        public PropertyContext(ITypeDeclarationContext containingTypeContext, PropertyDeclarationSyntax propertyDeclaration, SemanticModel semanticModel)
         {
+            if (containingTypeContext == null) throw new ArgumentException(nameof(containingTypeContext));
+            ContainingTypeContext = Maybe.From(containingTypeContext);
             Declaration = propertyDeclaration ?? throw new ArgumentNullException(nameof(propertyDeclaration));
             SemanticModel = semanticModel ?? throw new ArgumentNullException(nameof(semanticModel));
         }

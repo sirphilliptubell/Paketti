@@ -65,6 +65,21 @@ namespace Paketti.Utilities
         IEnumerable<TypeContext> GetTypeDependencies(StructContext str, HashSet<ITypeDependent> visited = null);
 
         /// <summary>
+        /// Gets the type dependencies for a type declaration.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        IEnumerable<TypeContext> GetTypeDependencies(ITypeDeclarationContext value);
+
+        /// <summary>
+        /// Gets the type dependencies for a type member.
+        /// </summary>
+        /// <param name="member">The member.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        IEnumerable<TypeContext> GetTypeDependencies(ITypeMemberContext member);
+
+        /// <summary>
         /// Gets the type dependencies for a type.
         /// </summary>
         /// <param name="cls">The type.</param>

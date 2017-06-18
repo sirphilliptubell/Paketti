@@ -6,8 +6,13 @@
     public enum PackageKind
     {
         /// <summary>
-        /// A package contains only extension methods.
+        /// A package that contains only extension methods.
         /// </summary>
-        ExtensionMethods
+        ExtensionMethods,
+
+        /// <summary>
+        /// A package that contains optional members for a Type.
+        /// </summary>
+        OptionalTypeMembersPackage
     }
 }

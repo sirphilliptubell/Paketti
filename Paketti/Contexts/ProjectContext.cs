@@ -84,7 +84,7 @@ namespace Paketti.Contexts
         /// Gets the classes and structs in all the documents.
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<IClassOrStruct> GetClassesAndStructs()
+        public IEnumerable<ITypeDeclarationContext> GetClassesAndStructs()
             => Documents.SelectMany(x => x.GetClassesAndStructs());
 
         /// <summary>
@@ -94,6 +94,15 @@ namespace Paketti.Contexts
         public IEnumerable<MethodContext> GetExtensionMethods()
             => Documents
             .SelectMany(x => x.GetExtensionMethods());
+
+        /// <summary>
+        /// Gets the type members (eg: methods/properties/etc...)
+        /// Does not include extension methods.
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<ITypeMemberContext> GetTypeMembersExcludingExtensions()
+            => Documents
+            .SelectMany(x => x.GetTypeMembersExcludingExtensions());
 
         /// <summary>
         /// Gets a document context with the specified Id.

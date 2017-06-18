@@ -12,16 +12,9 @@ namespace Paketti.Contexts
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class MethodContext :
-        ITypeDependent
+        ITypeDependent,
+        ITypeMemberContext
     {
-        /// <summary>
-        /// Gets the symbol of the method.
-        /// </summary>
-        /// <value>
-        /// The symbol of the method.
-        /// </value>
-        public IMethodSymbol Symbol { get; }
-
         /// <summary>
         /// Gets the method declaration.
         /// </summary>
@@ -29,6 +22,22 @@ namespace Paketti.Contexts
         /// The method declaration.
         /// </value>
         public MethodDeclarationSyntax Declaration { get; }
+
+        /// <summary>
+        /// Gets the declaration's syntax node.
+        /// </summary>
+        /// <value>
+        /// The declaration.
+        /// </value>
+        SyntaxNode ITypeMemberContext.Declaration => this.Declaration;
+
+        /// <summary>
+        /// Gets the symbol of the method.
+        /// </summary>
+        /// <value>
+        /// The symbol of the method.
+        /// </value>
+        public IMethodSymbol Symbol { get; }
 
         /// <summary>
         /// Gets the semantic model.
@@ -39,14 +48,26 @@ namespace Paketti.Contexts
         public SemanticModel SemanticModel { get; }
 
         /// <summary>
+        /// Gets the class, struct, or interface that contains this instance.
+        /// Always has a value.
+        /// </summary>
+        /// <remarks>
+        /// Only a Maybe type because of the interface.
+        /// </remarks>
+        public Maybe<ITypeDeclarationContext> ContainingTypeContext { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="MethodContext"/> class.
         /// </summary>
+        /// <param name="containingTypeContext">The context for the type that contains this member.</param>
         /// <param name="methodDeclaration">The method declaration.</param>
         /// <param name="semanticModel">The semantic model.</param>
         /// <exception cref="System.ArgumentNullException">methodDeclaration</exception>
         /// <exception cref="System.ArgumentException">semanticModel</exception>
-        public MethodContext(MethodDeclarationSyntax methodDeclaration, SemanticModel semanticModel)
+        public MethodContext(ITypeDeclarationContext containingTypeContext, MethodDeclarationSyntax methodDeclaration, SemanticModel semanticModel)
         {
+            if (containingTypeContext == null) throw new ArgumentException(nameof(containingTypeContext));
+            ContainingTypeContext = Maybe.From(containingTypeContext);
             Declaration = methodDeclaration ?? throw new ArgumentNullException(nameof(methodDeclaration));
             SemanticModel = semanticModel ?? throw new ArgumentException(nameof(semanticModel));
 

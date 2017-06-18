@@ -54,9 +54,30 @@ namespace Paketti.Extensions
         /// <returns></returns>
         internal static Document AlterRoot(this Document doc, Func<CompilationUnitSyntax, CompilationUnitSyntax> alter)
             => doc.WithSyntaxRoot(
-                alter(
-                    (CompilationUnitSyntax)doc.GetSyntaxRootAsync().Result)
+                alter(doc.GetRootSync())
                 );
+
+        /// <summary>
+        /// Gets the root synchronously.
+        /// </summary>
+        /// <param name="doc">The document.</param>
+        /// <returns></returns>
+        internal static CompilationUnitSyntax GetRootSync(this Document doc)
+            => (CompilationUnitSyntax)doc.GetSyntaxRootAsync().Result;
+
+        /// <summary>
+        /// Gets a value indicating whether the document contains the specified node.
+        /// </summary>
+        /// <param name="doc">The document.</param>
+        /// <param name="node">The node.</param>
+        /// <returns>
+        ///   <c>true</c> if the specified node contains node; otherwise, <c>false</c>.
+        /// </returns>
+        internal static bool ContainsNode(this Document doc, SyntaxNode node)
+            => doc.GetRootSync()
+            .DescendantNodes()
+            .Where(n => n == node)
+            .Any();
 
         /// <summary>
         /// Gets the immediate descendants of the namespace.
@@ -93,13 +114,13 @@ namespace Paketti.Extensions
         /// <param name="node">The node.</param>
         /// <param name="semanticModel">The semantic model.</param>
         /// <returns></returns>
-        internal static IEnumerable<VariableContext> GetDescendantFieldContexts(this TypeDeclarationSyntax node, SemanticModel semanticModel)
-            => node
+        internal static IEnumerable<VariableContext> GetDescendantFieldContexts(this ITypeDeclarationContext typeContext, SemanticModel semanticModel)
+            => typeContext.Declaration
             //todo: this may cause issues with nested classes/structs
             .DescendantNodes()
             .OfType<FieldDeclarationSyntax>()
             .SelectMany(x => x.Declaration.Variables)
-            .Select(x => new VariableContext(x, semanticModel));
+            .Select(x => new VariableContext(Maybe.From(typeContext), x, semanticModel));
 
         /// <summary>
         /// Gets the <c>ConstructorContext</c>s for the type.
@@ -107,12 +128,12 @@ namespace Paketti.Extensions
         /// <param name="node">The node.</param>
         /// <param name="semanticModel">The semantic model.</param>
         /// <returns></returns>
-        internal static IEnumerable<ConstructorContext> GetDescendantConstructorContexts(this TypeDeclarationSyntax node, SemanticModel semanticModel)
-            => node
+        internal static IEnumerable<ConstructorContext> GetDescendantConstructorContexts(this ITypeDeclarationContext typeContext, SemanticModel semanticModel)
+            => typeContext.Declaration
             //todo: this may cause issues with nested classes/structs
             .DescendantNodes()
             .OfType<ConstructorDeclarationSyntax>()
-            .Select(x => new ConstructorContext(x, semanticModel));
+            .Select(x => new ConstructorContext(typeContext, x, semanticModel));
 
         /// <summary>
         /// Gets the <c>MethodContext</c>s for the type.
@@ -120,12 +141,12 @@ namespace Paketti.Extensions
         /// <param name="node">The node.</param>
         /// <param name="semanticModel">The semantic model.</param>
         /// <returns></returns>
-        internal static IEnumerable<MethodContext> GetDescendantMethodContexts(this TypeDeclarationSyntax node, SemanticModel semanticModel)
-            => node
+        internal static IEnumerable<MethodContext> GetDescendantMethodContexts(this ITypeDeclarationContext typeContext, SemanticModel semanticModel)
+            => typeContext.Declaration
             //todo: this may cause issues with nested classes/structs
             .DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
-            .Select(x => new MethodContext(x, semanticModel));
+            .Select(x => new MethodContext(typeContext, x, semanticModel));
 
         /// <summary>
         /// Gets the <c>PropertyContext</c>s for the type.
@@ -133,12 +154,12 @@ namespace Paketti.Extensions
         /// <param name="node">The node.</param>
         /// <param name="semanticModel">The semantic model.</param>
         /// <returns></returns>
-        internal static IEnumerable<PropertyContext> GetDescendantPropertyContexts(this TypeDeclarationSyntax node, SemanticModel semanticModel)
-            => node
+        internal static IEnumerable<PropertyContext> GetDescendantPropertyContexts(this ITypeDeclarationContext typeContext, SemanticModel semanticModel)
+            => typeContext.Declaration
             //todo: this may cause issues with nested classes/structs
             .DescendantNodes()
             .OfType<PropertyDeclarationSyntax>()
-            .Select(x => new PropertyContext(x, semanticModel));
+            .Select(x => new PropertyContext(typeContext, x, semanticModel));
 
         /// <summary>
         /// Gets the namespaces of the document.
@@ -147,7 +168,7 @@ namespace Paketti.Extensions
         /// <returns></returns>
         internal static IEnumerable<NamespaceDeclarationSyntax> GetNamespaces(this Document document)
             => document
-            .GetSyntaxRootAsync().Result
+            .GetRootSync()
             .DescendantNodes()
             .OfType<NamespaceDeclarationSyntax>();
 

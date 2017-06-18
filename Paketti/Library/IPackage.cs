@@ -37,6 +37,6 @@ namespace Paketti.Library
         /// <value>
         /// The type dependencies.
         /// </value>
-        IList<string> TypeDependencies { get; }
+        IReadOnlyList<string> TypeDependencies { get; }
     }
 }

@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Paketti.Extensions;
 
 namespace Paketti.Library
 {
     /// <summary>
-    /// A package of Extension Methods.
+    /// A package of the optional members for a Type.
     /// </summary>
-    public class ExtensionMethodsPackage :
-        IMergeablePackage<ExtensionMethodsPackage>
+    public class OptionalTypeMembersPackage :
+        IMergeablePackage<OptionalTypeMembersPackage>
     {
         /// <summary>
-        /// Gets the content of the package.
+        /// Gets the name of the class / struct / interface.
         /// </summary>
-        /// <value>
-        /// The content.
-        /// </value>
+        public string TypeName { get; }
+
+        /// <summary>
+        /// Gets the functions and properties for the type.
+        /// </summary>
         public string Content { get; }
 
         /// <summary>
@@ -41,19 +44,20 @@ namespace Paketti.Library
         /// <param name="content">The content.</param>
         /// <param name="kind">The kind.</param>
         /// <param name="typeDependencies">The type dependencies.</param>
-        public ExtensionMethodsPackage(string content, IEnumerable<string> typeDependencies)
+        public OptionalTypeMembersPackage(string typeName, string content, IEnumerable<string> typeDependencies)
         {
+            TypeName = typeName ?? throw new ArgumentNullException(nameof(typeName));
             Content = content?.Trim() ?? throw new ArgumentNullException(nameof(content));
             TypeDependencies = typeDependencies?.ToList() ?? throw new ArgumentNullException(nameof(typeDependencies));
 
-            Key = $"{Kind} {typeDependencies.OrderBy(x => x).ToCommaSeparated()}";
+            Key = $"{Kind} {typeName} {typeDependencies.OrderBy(x => x).ToCommaSeparated()}";
         }
 
         /// <summary>
-        /// Returns <see cref="PackageKind.ExtensionMethods"/>
+        /// Returns <see cref="PackageKind.OptionalTypeMembersPackage"/>
         /// </summary>
         public PackageKind Kind
-            => PackageKind.ExtensionMethods;
+            => PackageKind.OptionalTypeMembersPackage;
 
         /// <summary>
         /// Appends the specified package to this one.
@@ -62,15 +66,20 @@ namespace Paketti.Library
         /// <param name="package">The package.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">package</exception>
-        /// <exception cref="System.ArgumentException">Key does not match.</exception>
-        public ExtensionMethodsPackage MergeWith(ExtensionMethodsPackage package)
+        /// <exception cref="System.ArgumentException">
+        /// Key does not match.
+        /// or
+        /// TypeName does not match.
+        /// </exception>
+        public OptionalTypeMembersPackage MergeWith(OptionalTypeMembersPackage package)
         {
             if (package == null) throw new ArgumentNullException(nameof(package));
-            if (this.Key != package.Key) throw new ArgumentException("Key does not match.");
+            if (package.Key != this.Key) throw new ArgumentException("Key does not match.");
+            if (package.TypeName != this.TypeName) throw new ArgumentException("TypeName does not match.");
 
             var newContent = this.Content.Trim() + Environment.NewLine + Environment.NewLine + package.Content;
 
-            return new ExtensionMethodsPackage(newContent, TypeDependencies);
+            return new OptionalTypeMembersPackage(TypeName, newContent, TypeDependencies.ToList());
         }
     }
 }

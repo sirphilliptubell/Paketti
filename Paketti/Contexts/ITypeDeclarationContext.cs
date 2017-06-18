@@ -1,12 +1,22 @@
 ﻿using System.Collections.Generic;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Paketti.Contexts
 {
     /// <summary>
-    /// Represents the contextual information for a Class or Struct.
+    /// Represents the contextual information for a class, struct, or interface.
     /// </summary>
-    public interface IClassOrStruct
+    public interface ITypeDeclarationContext :
+        IKeyable
     {
+        /// <summary>
+        /// Gets the type declaration syntax.
+        /// </summary>
+        /// <value>
+        /// The declaration.
+        /// </value>
+        TypeDeclarationSyntax Declaration { get; }
+
         /// <summary>
         /// Gets the constructors in the class/struct.
         /// </summary>

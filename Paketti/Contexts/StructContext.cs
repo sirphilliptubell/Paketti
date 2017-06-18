@@ -15,8 +15,24 @@ namespace Paketti.Contexts
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class StructContext :
         ITypeDependent,
-        IClassOrStruct
+        ITypeDeclarationContext
     {
+        /// <summary>
+        /// Gets the struct declaration.
+        /// </summary>
+        /// <value>
+        /// The struct declaration.
+        /// </value>
+        public StructDeclarationSyntax Declaration { get; }
+
+        /// <summary>
+        /// Gets the type declaration syntax.
+        /// </summary>
+        /// <value>
+        /// The declaration.
+        /// </value>
+        TypeDeclarationSyntax ITypeDeclarationContext.Declaration => this.Declaration;
+
         /// <summary>
         /// Gets the constructors in the struct.
         /// </summary>
@@ -66,14 +82,6 @@ namespace Paketti.Contexts
         public SemanticModel SemanticModel { get; }
 
         /// <summary>
-        /// Gets the struct declaration.
-        /// </summary>
-        /// <value>
-        /// The struct declaration.
-        /// </value>
-        public StructDeclarationSyntax Declaration { get; }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="StructContext"/> class.
         /// </summary>
         /// <param name="structDeclaration">The structure declaration.</param>
@@ -86,10 +94,10 @@ namespace Paketti.Contexts
             SemanticModel = semanticModel ?? throw new ArgumentException(nameof(semanticModel));
 
             Symbol = semanticModel.GetDeclaredSymbol(structDeclaration);
-            Properties = structDeclaration.GetDescendantPropertyContexts(semanticModel).ToList();
-            Methods = structDeclaration.GetDescendantMethodContexts(semanticModel).ToList();
-            Fields = structDeclaration.GetDescendantFieldContexts(semanticModel).ToList();
-            Constructors = structDeclaration.GetDescendantConstructorContexts(semanticModel).ToList();
+            Properties = this.GetDescendantPropertyContexts(semanticModel).ToList();
+            Methods = this.GetDescendantMethodContexts(semanticModel).ToList();
+            Fields = this.GetDescendantFieldContexts(semanticModel).ToList();
+            Constructors = this.GetDescendantConstructorContexts(semanticModel).ToList();
         }
 
         /// <summary>
@@ -117,7 +125,21 @@ namespace Paketti.Contexts
         /// A <see cref="System.String" /> that represents this instance.
         /// </returns>
         public override string ToString()
-            => $"{(Symbol.IsStatic ? "static " : string.Empty)}struct {Symbol.Name}";
+        {
+            var stat = Symbol.IsStatic ? "static " : string.Empty;
+
+            //todo: add generic type parameters
+            return $"{stat}struct {Symbol.ContainingAssembly.Name}.{Symbol.Name}<TODO>";
+        }
+
+        /// <summary>
+        /// Gets the key that identifies an object.
+        /// </summary>
+        /// <value>
+        /// The object's key.
+        /// </value>
+        public string Key
+            => ToString();
 
         public string DebuggerDisplay
             => ToString();

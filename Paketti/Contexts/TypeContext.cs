@@ -14,7 +14,8 @@ namespace Paketti.Contexts
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class TypeContext :
-        ITypeDependent
+        ITypeDependent,
+        IKeyable
     {
         /// <summary>
         /// Gets the names of Microsoft's CLR assemblies.
@@ -219,6 +220,15 @@ namespace Paketti.Contexts
 
             return $"{AssemblyName}.{Name}{generic}{vTuple}{array}";
         }
+
+        /// <summary>
+        /// Gets the key that identifies an object.
+        /// </summary>
+        /// <value>
+        /// The object's key.
+        /// </value>
+        public string Key
+            => ToString();
 
         private string DebuggerDisplay
             => ToString();

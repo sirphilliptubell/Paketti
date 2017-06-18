@@ -22,7 +22,7 @@ namespace Paketti.Library
             => _packages.Values;
 
         /// <summary>
-        /// Stores the specified package.
+        /// Stores the specified package of extension methods.
         /// </summary>
         /// <param name="package">The package.</param>
         /// <exception cref="System.ArgumentException">package</exception>
@@ -32,6 +32,21 @@ namespace Paketti.Library
 
             if (_packages.ContainsKey(package.Key))
                 _packages[package.Key] = ((ExtensionMethodsPackage)_packages[package.Key]).MergeWith(package);
+            else
+                _packages[package.Key] = package;
+        }
+
+        /// <summary>
+        /// Stores the specified package of optional members for a type.
+        /// </summary>
+        /// <param name="package">The package.</param>
+        /// <exception cref="System.ArgumentException">package</exception>
+        public void AddOrMerge(OptionalTypeMembersPackage package)
+        {
+            if (package == null) throw new ArgumentException(nameof(package));
+
+            if (_packages.ContainsKey(package.Key))
+                _packages[package.Key] = ((OptionalTypeMembersPackage)_packages[package.Key]).MergeWith(package);
             else
                 _packages[package.Key] = package;
         }

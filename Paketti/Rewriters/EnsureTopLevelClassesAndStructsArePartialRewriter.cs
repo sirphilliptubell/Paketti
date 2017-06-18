@@ -16,16 +16,6 @@ namespace Paketti.Rewriters
         IRewriter
     {
         /// <summary>
-        /// Gets a value indicating whether the project should be recompiled to validate the changes
-        /// didn't break the project.
-        /// </summary>
-        /// <value>
-        /// <c>true</c>.
-        /// </value>
-        public bool ShouldRecompileToValidate
-            => true;
-
-        /// <summary>
         /// Rewrites the specified document context.
         /// </summary>
         /// <param name="documentContext">The document context.</param>

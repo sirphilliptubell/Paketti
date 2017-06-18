@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Paketti.Extensions;
 
 namespace Paketti.Contexts
 {
@@ -86,7 +87,7 @@ namespace Paketti.Contexts
             Delegates = SyntaxRoot
                 .DescendantNodes()
                 .OfType<DelegateDeclarationSyntax>()
-                .Select(x => new DelegateContext(x, SemanticModel))
+                .Select(x => new DelegateContext(null, x, SemanticModel))
                 .ToList();
         }
 
@@ -124,7 +125,7 @@ namespace Paketti.Contexts
         /// The syntax root.
         /// </value>
         public SyntaxNode SyntaxRoot
-            => Document.GetSyntaxRootAsync().Result;
+            => Document.GetRootSync();
 
         /// <summary>
         /// Gets the syntax tree.
@@ -139,8 +140,8 @@ namespace Paketti.Contexts
         /// Gets the classes and structs in the document (including nested ones).
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<IClassOrStruct> GetClassesAndStructs()
-            => ((IEnumerable<IClassOrStruct>)Classes)
+        public IEnumerable<ITypeDeclarationContext> GetClassesAndStructs()
+            => ((IEnumerable<ITypeDeclarationContext>)Classes)
             .Union(Structs);
 
         /// <summary>
@@ -152,6 +153,18 @@ namespace Paketti.Contexts
             .Where(x => x.IsStatic)
             .SelectMany(x => x.Methods)
             .Where(x => x.IsExtensionMethod);
+
+        /// <summary>
+        /// Gets the type members (eg: methods/properties/etc...)
+        /// Does not include extension methods.
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<ITypeMemberContext> GetTypeMembersExcludingExtensions()
+            => Classes
+            .SelectMany(x => x.GetTypeMembersExcludingExtensions())
+            .Union(
+                Structs
+                .SelectMany(x => x.GetTypeMembersExcludingExtensions()));
 
         /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.

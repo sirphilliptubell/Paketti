@@ -21,5 +21,11 @@ namespace Paketti.Library
         /// <param name="package">The package.</param>
         /// <exception cref="System.ArgumentException">package</exception>
         void AddOrMerge(ExtensionMethodsPackage package);
+
+        /// <summary>
+        /// Stores the specified package of optional members for a type.
+        /// </summary>
+        /// <param name="package">The package.</param>
+        void AddOrMerge(OptionalTypeMembersPackage package);
     }
 }

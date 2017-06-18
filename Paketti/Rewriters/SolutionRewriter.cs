@@ -11,15 +11,10 @@ namespace Paketti.Rewriters
     /// <summary>
     /// Rewrites a solution.
     /// </summary>
-    public class SolutionRewriter
+    public class SolutionRewriter :
+        ISolutionRewriter
     {
-        private readonly ICompiler _compiler;
         private readonly ILog _log;
-
-        private readonly IReadOnlyCollection<IRewriter> _rewriters = new IRewriter[] {
-            new EnsureTopLevelClassesAndStructsArePartialRewriter(),
-            new RemoveRegionRewriter()
-        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SolutionRewriter"/> class.
@@ -31,9 +26,8 @@ namespace Paketti.Rewriters
         /// or
         /// log
         /// </exception>
-        public SolutionRewriter(ICompiler compiler, ILog log)
+        public SolutionRewriter(ILog log)
         {
-            _compiler = compiler ?? throw new ArgumentException(nameof(compiler));
             _log = log ?? throw new ArgumentException(nameof(log));
         }
 
@@ -84,8 +78,9 @@ namespace Paketti.Rewriters
         /// Rewrites the specified workspace.
         /// </summary>
         /// <param name="workspace">The workspace.</param>
+        /// <param name="rewriters">The rewriters.</param>
         /// <returns></returns>
-        public Result<Workspace> Rewrite(Workspace workspace)
+        public Result<Workspace> Rewrite(Workspace workspace, IEnumerable<IRewriter> rewriters)
         {
             var modifiedSolution = workspace.CurrentSolution;
 
@@ -93,13 +88,9 @@ namespace Paketti.Rewriters
             if (solutionContext.IsFailure)
                 return Result.Fail<Workspace>("Could not get SolutionContext before rewriting: " + solutionContext.Error);
 
-            var preCheck = _compiler.Compile(solutionContext.Value.ProjectContext, _log);
-            if (preCheck.IsFailure)
-                return Result.Fail<Workspace>("Project didn't compile before rewriting anything: " + preCheck.Error);
-
             var rewriteResults =
                 Result.CombineAll(
-                    _rewriters
+                    rewriters
                     .Select(rewriter =>
                     {
                         var rewriteResult = Rewrite(modifiedSolution, rewriter);
@@ -130,7 +121,7 @@ namespace Paketti.Rewriters
         /// <param name="originalSolution">The solution.</param>
         /// <param name="rewriter">The rewriter.</param>
         /// <returns></returns>
-        private Result<Solution> Rewrite(Solution originalSolution, IRewriter rewriter)
+        public Result<Solution> Rewrite(Solution originalSolution, IRewriter rewriter)
             => Modify(
                 original: originalSolution,
                 getIntermediateValues: solution => solution.ProjectIds,
@@ -158,7 +149,7 @@ namespace Paketti.Rewriters
         /// <param name="originalProjectContext">The original project context.</param>
         /// <param name="rewriter">The rewriter.</param>
         /// <returns></returns>
-        private Result<ProjectContext> Rewrite(ProjectContext originalProjectContext, IRewriter rewriter)
+        public Result<ProjectContext> Rewrite(ProjectContext originalProjectContext, IRewriter rewriter)
             => Modify(
                 original: originalProjectContext,
                 getIntermediateValues: projectContext => projectContext.Project.DocumentIds,
@@ -176,7 +167,7 @@ namespace Paketti.Rewriters
         /// <param name="document">The original document.</param>
         /// <param name="rewriter">The rewriter.</param>
         /// <returns></returns>
-        private Result<DocumentContext> Rewrite(DocumentContext document, IRewriter rewriter)
+        public Result<DocumentContext> Rewrite(DocumentContext document, IRewriter rewriter)
         {
             //only rewrite .vb and .cs
             if (document.Document.SourceCodeKind != SourceCodeKind.Regular
@@ -195,14 +186,11 @@ namespace Paketti.Rewriters
                 return Result.Fail<DocumentContext>(newProjectContext.Error);
             else
             {
-                if (rewriter.ShouldRecompileToValidate)
-                {
-                    var compileResult = _compiler.Compile(newProjectContext.Value, _log);
-                    if (compileResult.IsFailure)
-                        return Result.Fail<DocumentContext>(compileResult.Error);
-                }
-
-                var newDocContext = newProjectContext.Value.Documents.Where(x => x.Document.Id == document.Document.Id).Single();
+                var newDocContext =
+                    newProjectContext.Value
+                    .Documents
+                    .Where(x => x.Document.Id == document.Document.Id)
+                    .Single();
                 return Result.Ok(newDocContext);
             }
         }

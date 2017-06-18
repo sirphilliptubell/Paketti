@@ -416,5 +416,57 @@ namespace Paketti.Utilities
 
             return r;
         }
+
+        /// <summary>
+        /// Gets the type dependencies for a type declaration.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException">if the value is not a <see cref="ClassContext"/> or <see cref="StructContext"/></exception>
+        public IEnumerable<TypeContext> GetTypeDependencies(ITypeDeclarationContext value)
+        {
+            switch (value)
+            {
+                case ClassContext cls:
+                    return GetTypeDependencies(cls);
+
+                case StructContext str:
+                    return GetTypeDependencies(str);
+
+                //todo add interfacecontext
+                default:
+                    throw new NotImplementedException(value.GetType().Name);
+            }
+        }
+
+        /// <summary>
+        /// Gets the type dependencies for a type member.
+        /// </summary>
+        /// <param name="member">The member.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IEnumerable<TypeContext> GetTypeDependencies(ITypeMemberContext member)
+        {
+            switch (member)
+            {
+                case ConstructorContext ctor:
+                    return GetTypeDependencies(ctor);
+
+                case DelegateContext del:
+                    return GetTypeDependencies(del);
+
+                case MethodContext met:
+                    return GetTypeDependencies(met);
+
+                case PropertyContext prop:
+                    return GetTypeDependencies(prop);
+
+                case VariableContext var:
+                    return GetTypeDependencies(var);
+
+                default:
+                    throw new NotImplementedException(member.ToString());
+            }
+        }
     }
 }

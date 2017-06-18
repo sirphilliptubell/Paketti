@@ -4,7 +4,7 @@ using Paketti.Contexts;
 
 namespace Paketti.Extensions
 {
-    public static class ITypeContextExtensions
+    public static class TypeContextExtensions
     {
         /// <summary>
         /// Filters the types to only those that are not part of the CLR and are not generic parameters.

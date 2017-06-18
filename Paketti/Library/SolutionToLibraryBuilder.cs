@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.FileProviders;
 using Paketti.Contexts;
@@ -20,6 +21,7 @@ namespace Paketti.Library
         private readonly ICompiler _compiler;
         private readonly IFileInfo _solutionFile;
         private readonly Func<T> _workspaceFactory;
+        private readonly ISolutionRewriter _solutionRewriter;
         private readonly Func<ProjectContext, IDependencyWalker> _walkerFactory;
         private readonly ILog _log;
         private readonly Action<T, string> _openSolution;
@@ -45,12 +47,14 @@ namespace Paketti.Library
             ICompiler verifyingCompiler,
             IFileInfo solutionFile,
             Func<T> workspaceFactory,
+            ISolutionRewriter solutionRewriter,
             Func<ProjectContext, IDependencyWalker> walkerFactory,
             ILog log, Action<T, string> openSolution = null)
         {
             _compiler = verifyingCompiler ?? throw new ArgumentException(nameof(verifyingCompiler));
             _solutionFile = solutionFile ?? throw new ArgumentException(nameof(solutionFile));
             _workspaceFactory = workspaceFactory ?? throw new ArgumentException(nameof(workspaceFactory));
+            _solutionRewriter = solutionRewriter ?? throw new ArgumentException(nameof(solutionRewriter));
             _walkerFactory = walkerFactory ?? throw new ArgumentException(nameof(walkerFactory));
             _log = log ?? throw new ArgumentException(nameof(log));
 
@@ -62,12 +66,16 @@ namespace Paketti.Library
         /// </summary>
         /// <returns></returns>
         public Result<ILibrary> Build()
+            //get and clone the workspace
             => GetWorkspaceFromSlnFile()
             .OnSuccess(CreateAdHocClone)
-            .OnSuccess(RewriteAllProjectsInSolution)
+
+            //Verify it compiles
             .OnSuccess(SolutionContext.Create)
+            .OnSuccess(VerifySolutionCompiles)
             .OnSuccess(sol => sol.ProjectContext)
-            .OnSuccess(CreateWalker)
+
+            //finish
             .OnSuccess(BuildLibrary);
 
         /// <summary>
@@ -79,27 +87,13 @@ namespace Paketti.Library
             => ws.CreateClone();
 
         /// <summary>
-        /// Creates the dependency walker for the project context.
-        /// </summary>
-        /// <param name="solutionContext">The solution context.</param>
-        /// <returns></returns>
-        private Result<IDependencyWalker> CreateWalker(ProjectContext projectContext)
-        {
-            var walker = _walkerFactory(projectContext);
-            if (walker == null)
-                return Result.Fail<IDependencyWalker>("The DependencyWalkerFactory function given in the constructor returned null.");
-            else
-                return Result.Ok(walker);
-        }
-
-        /// <summary>
         /// Bruilds the library.
         /// </summary>
         /// <param name="solutionContext">The solution context.</param>
         /// <returns></returns>
-        private Result<ILibrary> BuildLibrary(IDependencyWalker walker)
-            => new ProjectToLibraryBuilder()
-            .Build(walker, new Library(), _log);
+        private Result<ILibrary> BuildLibrary(ProjectContext projectContext)
+            => new ProjectToLibraryBuilder(new Library(), _solutionRewriter, _walkerFactory, _log)
+            .Build(projectContext);
 
         /// <summary>
         /// Gets the workspace.
@@ -119,12 +113,13 @@ namespace Paketti.Library
         }
 
         /// <summary>
-        /// Rewrites all the projects in the solution.
+        /// Verifies the solution compiles.
         /// </summary>
-        /// <param name="workspace">The workspace.</param>
+        /// <param name="solutionContext">The solution context.</param>
         /// <returns></returns>
-        private Result<Workspace> RewriteAllProjectsInSolution(Workspace workspace)
-            => new SolutionRewriter(_compiler, _log)
-            .Rewrite(workspace);
+        private Result<SolutionContext> VerifySolutionCompiles(SolutionContext solutionContext)
+            => _compiler
+            .Compile(solutionContext.ProjectContext, _log)
+            .ToTypedResult(solutionContext);
     }
 }
