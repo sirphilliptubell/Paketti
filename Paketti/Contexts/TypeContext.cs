@@ -183,7 +183,7 @@ namespace Paketti.Contexts
         /// Gets the full name of the type.
         /// </summary>
         public string FullName
-            => GetFullName(includeGenericTypeParamNames: true);
+            => NameBuilder.GetFullName(TypeArguments, Name, IsGeneric, IsValueTuple, IsArray, includeGenericTypeParamNames: true);
 
         /// <summary>
         /// Gets the full name without the names of the generic type arguments.
@@ -192,45 +192,7 @@ namespace Paketti.Contexts
         /// The full name without the names of the generic type arguments.
         /// </value>
         public string FullNameWithoutGenericNames
-            => GetFullName(includeGenericTypeParamNames: false);
-
-        /// <summary>
-        /// Gets the full name.
-        /// </summary>
-        /// <param name="includeGenericTypeParamNames">if set to <c>true</c> then include the generic type parameter names.</param>
-        /// <returns></returns>
-        private string GetFullName(bool includeGenericTypeParamNames)
-        {
-            var ns = Namespace.Length == 0
-                ? string.Empty
-                : Symbol.ContainingNamespace.Name + ".";
-
-            var argCountLess1 = TypeArguments.Count() - 1;
-            if (argCountLess1 == -1)
-                argCountLess1 = 0;
-
-            var typeArgs
-                = includeGenericTypeParamNames
-                ? TypeArguments.Select(x => x.Name).ToCommaSeparated() //comma separate the names
-                : string.Empty.PadRight(argCountLess1, ','); //only use commas, eg: Tuple<,,,>
-
-            var generic
-                = IsGeneric
-                ? $"<{typeArgs}>"
-                : string.Empty;
-
-            var vTuple
-                = IsValueTuple
-                ? $"ValueTuple<{typeArgs}>"
-                : string.Empty;
-
-            var array
-                = IsArray
-                ? $"{TypeArguments.Single().Name}[]"
-                : string.Empty;
-
-            return $"{AssemblyName}.{ns}{Name}{generic}{vTuple}{array}";
-        }
+            => NameBuilder.GetFullName(TypeArguments, Name, IsGeneric, IsValueTuple, IsArray, includeGenericTypeParamNames: false);
 
         /// <summary>
         /// Gets the description of the dependency.

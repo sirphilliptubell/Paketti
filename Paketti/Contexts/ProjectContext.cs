@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Paketti.Primitives;
 
 namespace Paketti.Contexts
@@ -39,12 +40,19 @@ namespace Paketti.Contexts
         {
             this.Project = project ?? throw new ArgumentNullException(nameof(project));
 
-            var compilation = this.NewCompilation;
+            //this may throw an exception if the project doesn't compile
+            this.Compilation = CSharpCompilation.Create(Project.AssemblyName, DocumentSyntaxTrees, Project.MetadataReferences);
+
             this.Documents = Project
                 .Documents
                 .Select(x => new DocumentContext(this, x))
                 .ToList();
         }
+
+        /// <summary>
+        /// Gets the compilation.
+        /// </summary>
+        public CSharpCompilation Compilation { get; }
 
         /// <summary>
         /// Gets the syntax trees of all the documents in the project.
@@ -54,15 +62,6 @@ namespace Paketti.Contexts
         /// </value>
         public IEnumerable<SyntaxTree> DocumentSyntaxTrees
             => Project.Documents.Select(x => x.GetSyntaxTreeAsync().Result);
-
-        /// <summary>
-        /// Gets a new compilation using all the documents in this project.
-        /// </summary>
-        /// <value>
-        /// The new compilation.
-        /// </value>
-        public CSharpCompilation NewCompilation
-            => CSharpCompilation.Create(Project.AssemblyName, DocumentSyntaxTrees);
 
         /// <summary>
         /// Gets the name of the assembly for the project.
@@ -79,6 +78,7 @@ namespace Paketti.Contexts
         {
             try
             {
+                //May throw if the project doesn't compile
                 return Result.Ok(new ProjectContext(project));
             }
             catch (Exception ex)
@@ -112,6 +112,14 @@ namespace Paketti.Contexts
             .SelectMany(x => x.GetTypeMembersExcludingExtensions());
 
         /// <summary>
+        /// Gets the types that can contain members.
+        /// </summary>
+        /// <returns></returns>
+        public (IEnumerable<ClassContext> classes, IEnumerable<StructContext> structs) GetMemberContainers()
+            //todo: add interfaces
+            => (Documents.SelectMany(x => x.Classes), Documents.SelectMany(x => x.Structs));
+
+        /// <summary>
         /// Gets a document context with the specified Id.
         /// </summary>
         /// <param name="documentId">The document identifier.</param>
@@ -132,5 +140,29 @@ namespace Paketti.Contexts
 
         private string DebuggerDisplay
             => $"{Name} (Assembly: {Project.AssemblyName})";
+
+        ///// <summary>
+        ///// Gets the unused (or duplicate) using directives.
+        ///// </summary>
+        ///// <param name="root">The document root.</param>
+        ///// <returns></returns>
+        //internal Dictionary<DocumentId, IEnumerable<UsingDirectiveSyntax>> GetUnusedUsingDirectives()
+        //{
+        //    var result = new HashSet<SyntaxNode>();
+
+        //    var diagnostics = root
+        //        .GetDiagnostics()
+        //        .Where(d => d.Id == DiagnosticId.DUPLICATE_USING_DIRECTIVE || d.Id == DiagnosticId.UNNECESSARY_USING_DIRECTIVE);
+
+        //    foreach (var diagnostic in diagnostics)
+        //    {
+        //        if (root.FindNode(diagnostic.Location.SourceSpan) is UsingDirectiveSyntax syntax)
+        //        {
+        //            result.Add(syntax);
+        //        }
+        //    }
+
+        //    return result;
+        //}
     }
 }

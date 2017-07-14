@@ -82,6 +82,14 @@ namespace Paketti.Contexts
         public SemanticModel SemanticModel { get; }
 
         /// <summary>
+        /// Gets the generic type arguments, if any.
+        /// </summary>
+        /// <value>
+        /// The generic type arguments, if any.
+        /// </value>
+        public IEnumerable<TypeContext> TypeArguments { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="StructContext"/> class.
         /// </summary>
         /// <param name="structDeclaration">The structure declaration.</param>
@@ -98,7 +106,30 @@ namespace Paketti.Contexts
             Methods = this.GetDescendantMethodContexts(semanticModel).ToList();
             Fields = this.GetDescendantFieldContexts(semanticModel).ToList();
             Constructors = this.GetDescendantConstructorContexts(semanticModel).ToList();
+
+            if (Symbol is INamedTypeSymbol named)
+            {
+                if (named.IsGenericType)
+                {
+                    TypeArguments = named
+                        .TypeArguments
+                        .Select(x => new TypeContext(x, semanticModel))
+                        .ToList();
+                }
+                else
+                {
+                    TypeArguments = new TypeContext[] { };
+                }
+            }
+            else
+                Debugger.Break();
         }
+
+        /// <summary>
+        /// Gets the name of the class.
+        /// </summary>
+        public string Name
+            => Symbol.Name;
 
         /// <summary>
         /// Gets a value indicating whether this struct has the partial modifier.
@@ -119,6 +150,30 @@ namespace Paketti.Contexts
             => Symbol.IsStatic;
 
         /// <summary>
+        /// Gets the full name of the type.
+        /// </summary>
+        public string FullName
+            => NameBuilder.GetFullName(TypeArguments, Name, IsGeneric, isValueTuple: false, isArray: false, includeGenericTypeParamNames: true);
+
+        /// <summary>
+        /// Gets the full name without the names of the generic type arguments.
+        /// </summary>
+        /// <value>
+        /// The full name without the names of the generic type arguments.
+        /// </value>
+        public string FullNameWithoutGenericNames
+            => NameBuilder.GetFullName(TypeArguments, Name, IsGeneric, isValueTuple: false, isArray: false, includeGenericTypeParamNames: false);
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is generic.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is generic; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsGeneric
+            => Symbol.IsGenericType;
+
+        /// <summary>
         /// Returns a <see cref="System.String" /> that represents this instance.
         /// </summary>
         /// <returns>
@@ -129,7 +184,7 @@ namespace Paketti.Contexts
             var stat = Symbol.IsStatic ? "static " : string.Empty;
 
             //todo: add generic type parameters
-            return $"{stat}struct {Symbol.ContainingAssembly.Name}.{Symbol.Name}<TODO>";
+            return $"{stat}struct {FullName}";
         }
 
         /// <summary>

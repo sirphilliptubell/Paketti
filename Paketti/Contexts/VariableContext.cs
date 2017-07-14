@@ -20,7 +20,7 @@ namespace Paketti.Contexts
         /// <value>
         /// The variable declaration.
         /// </value>
-        public VariableDeclaratorSyntax Declaration { get; }
+        public FieldDeclarationSyntax Declaration { get; }
 
         /// <summary>
         /// Gets the declaration's syntax node.
@@ -64,10 +64,10 @@ namespace Paketti.Contexts
         /// or
         /// semanticModel
         /// </exception>
-        public VariableContext(Maybe<ITypeDeclarationContext> containingTypeContext, VariableDeclaratorSyntax variableDeclarator, SemanticModel semanticModel)
+        public VariableContext(Maybe<ITypeDeclarationContext> containingTypeContext, FieldDeclarationSyntax fieldDeclarator, VariableDeclaratorSyntax variableDeclarator, SemanticModel semanticModel)
         {
             ContainingTypeContext = containingTypeContext; //can be null if this VariableDeclarator is a variable within a body and not a field within a type.
-            Declaration = variableDeclarator ?? throw new ArgumentNullException(nameof(variableDeclarator));
+            Declaration = fieldDeclarator ?? throw new ArgumentNullException(nameof(fieldDeclarator));
             SemanticModel = semanticModel ?? throw new ArgumentNullException(nameof(semanticModel));
 
             Symbol = (IFieldSymbol)semanticModel.GetDeclaredSymbol(variableDeclarator);

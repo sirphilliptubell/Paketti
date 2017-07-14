@@ -16,7 +16,7 @@ namespace Paketti.Library
         public string TypeName { get; }
 
         /// <summary>
-        /// Gets the functions and properties for the type.
+        /// Gets the members for the type.
         /// </summary>
         public string Content { get; }
 

@@ -10,6 +10,11 @@ namespace Paketti.Contexts
         IKeyable
     {
         /// <summary>
+        /// Gets the full name of the type without the exact names of the generic type arguments.
+        /// </summary>
+        string FullNameWithoutGenericNames { get; }
+
+        /// <summary>
         /// Gets the type declaration syntax.
         /// </summary>
         /// <value>

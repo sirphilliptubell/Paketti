@@ -41,8 +41,13 @@ namespace Paketti.Rewriters
                 dependencyWalker
                 .ProjectContext
                 .GetTypeMembersExcludingExtensions()
-                //must have local dependencies
-                .Where(x => dependencyWalker.GetTypeDependencies(x).AnyInterweaves())
+                .Select(x => new
+                {
+                    Member = x,
+                    Dependencies = dependencyWalker.GetTypeDependencies(x).Where(d => d.IsInterweave && d.FullNameWithoutGenericNames != x.ContainingTypeContext.Value.FullNameWithoutGenericNames)
+                })
+                .Where(x => x.Dependencies.Any())
+                .Select(x => x.Member)
                 .ToList();
 
             //Because we're getting only type members, eg: methods/delegates/etc.. of a struct/class/interface
@@ -55,6 +60,26 @@ namespace Paketti.Rewriters
                 return Result.Fail<IEnumerable<ITypeMemberContext>>("Some type members are missing a containing type: " + missingContainingDeclaration.Select(x => x.Declaration.ToString()));
 
             return result;
+        }
+
+        /// <summary>
+        /// Gets the member containers for the DependencyWalker
+        /// </summary>
+        /// <param name="dependencyWalker"></param>
+        /// <returns></returns>
+        public Result<(IEnumerable<ExtractedClassInfo> classes, IEnumerable<ExtractedStructInfo> structs)> GetMemberContainers(IDependencyWalker dependencyWalker)
+        {
+            var classes = dependencyWalker
+                .ProjectContext
+                .Documents
+                .SelectMany(d => d.Classes.Select(c => new ExtractedClassInfo(d, c)));
+
+            var structs = dependencyWalker
+                .ProjectContext
+                .Documents
+                .SelectMany(d => d.Structs.Select(s => new ExtractedStructInfo(d, s)));
+
+            return (classes, structs);
         }
     }
 }

@@ -50,5 +50,19 @@ namespace Paketti.Library
             else
                 _packages[package.Key] = package;
         }
+
+        /// <summary>
+        /// Stores the specified member container package.
+        /// </summary>
+        /// <param name="package">The package.</param>
+        public void AddOrMerge(MemberContainerPackage package)
+        {
+            if (package == null) throw new ArgumentException(nameof(package));
+
+            if (_packages.ContainsKey(package.Key))
+                _packages[package.Key] = ((MemberContainerPackage)_packages[package.Key]).MergeWith(package);
+            else
+                _packages[package.Key] = package;
+        }
     }
 }

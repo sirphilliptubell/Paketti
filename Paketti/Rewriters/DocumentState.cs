@@ -85,6 +85,18 @@ namespace Paketti.Rewriters
             .ToTypedResult(proj => new DocumentState(proj.GetDocument(_doc.Id)));
 
         /// <summary>
+        /// Gets a new instance of DocumentState with the specified changed document.
+        /// </summary>
+        /// <param name="alter">The function that alters the document.</param>
+        /// <returns></returns>
+        public Result<DocumentState> AlterDocumentContext(Func<DocumentContext, Result<Document>> alter)
+            => GetDocumentContext()
+            .Map(dc
+                => dc.IsFailure
+                ? Result.Fail<DocumentState>(dc.Error)
+                : alter(dc.Value).ToTypedResult(doc => new DocumentState(doc)));
+
+        /// <summary>
         /// Gets the document context.
         /// </summary>
         /// <returns></returns>

@@ -24,5 +24,13 @@ namespace Paketti.Rewriters
         /// <param name="dependencyWalker"></param>
         /// <returns></returns>
         Result<IEnumerable<ITypeMemberContext>> GetInterwovenTypeMembersExceptExtensions(IDependencyWalker dependencyWalker);
+
+        /// <summary>
+        /// Gets the instance and static types that can contain members.
+        /// </summary>
+        /// <param name="dependencyWalker"></param>
+        /// <param name="usings"></param>
+        /// <returns></returns>
+        Result<(IEnumerable<ExtractedClassInfo> classes, IEnumerable<ExtractedStructInfo> structs)> GetMemberContainers(IDependencyWalker dependencyWalker);
     }
 }

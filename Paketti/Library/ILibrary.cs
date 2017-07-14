@@ -27,5 +27,11 @@ namespace Paketti.Library
         /// </summary>
         /// <param name="package">The package.</param>
         void AddOrMerge(InterwovenTypeMembersPackage package);
+
+        /// <summary>
+        /// Stores the specified member container package.
+        /// </summary>
+        /// <param name="package">The package.</param>
+        void AddOrMerge(MemberContainerPackage package);
     }
 }

@@ -2,6 +2,7 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Paketti.Contexts;
 using Paketti.Extensions;
 using Paketti.Logging;
@@ -26,14 +27,28 @@ namespace Paketti.Rewriters
             using (log.LogStep($"{nameof(RemoveUnusedUsingsRewriter)}({documentContext.Name})"))
             {
                 var state = new DocumentState(documentContext)
-                    .AlterDocumentRoot(root =>
+                    .AlterDocumentContext(dc =>
                     {
-                        var usings = root.GetUnusedUsingDirectives();
+                        var root = dc.Document.GetRootSync();
 
-                        return root.RemoveNodes(usings, SyntaxRemoveOptions.KeepNoTrivia);
+                        var oldUsings = root
+                            .DescendantNodes()
+                            .OfType<UsingDirectiveSyntax>();
+
+                        var usingsToRemove = dc.SemanticModel
+                            .GetDiagnostics()
+                            .Where(x => x.Id == DiagnosticId.DUPLICATE_USING_DIRECTIVE || x.Id == DiagnosticId.UNNECESSARY_USING_DIRECTIVE)
+                            .Select(x => dc.Document.GetRootSync().FindNode(x.Location.SourceSpan) as UsingDirectiveSyntax)
+                            .Where(x => x != null);
+
+                        var newUsings = oldUsings.Except(usingsToRemove);
+
+                        var newRoot = root.WithUsings(SyntaxFactory.List(newUsings));
+
+                        return dc.Document.WithSyntaxRoot(newRoot);
                     });
 
-                return state.Document;
+                return state.Value.Document;
             }
         }
     }

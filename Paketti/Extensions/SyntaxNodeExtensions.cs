@@ -119,8 +119,10 @@ namespace Paketti.Extensions
             //todo: this may cause issues with nested classes/structs
             .DescendantNodes()
             .OfType<FieldDeclarationSyntax>()
-            .SelectMany(x => x.Declaration.Variables)
-            .Select(x => new VariableContext(Maybe.From(typeContext), x, semanticModel));
+            .SelectMany(f =>
+                f.Declaration
+                .Variables
+                .Select(v => new VariableContext(Maybe.From(typeContext), f, v, semanticModel)));
 
         /// <summary>
         /// Gets the <c>ConstructorContext</c>s for the type.
@@ -171,6 +173,17 @@ namespace Paketti.Extensions
             .GetRootSync()
             .DescendantNodes()
             .OfType<NamespaceDeclarationSyntax>();
+
+        /// <summary>
+        /// Gets the using directives for the document.
+        /// </summary>
+        /// <param name="document"></param>
+        /// <returns></returns>
+        internal static IEnumerable<UsingDirectiveSyntax> GetUsings(this Document document)
+            => document
+            .GetRootSync()
+            .DescendantNodes()
+            .OfType<UsingDirectiveSyntax>();
 
         /// <summary>
         /// Gets the top-most structs (not nested within other objects) in the namespace.
@@ -266,27 +279,11 @@ namespace Paketti.Extensions
                 members: SyntaxFactory.List(members));
 
         /// <summary>
-        /// Gets the unused (or duplicate) using directives.
+        /// Gets only the first level of descendant nodes of the specified node.
         /// </summary>
-        /// <param name="root">The document root.</param>
+        /// <param name="node"></param>
         /// <returns></returns>
-        internal static IEnumerable<SyntaxNode> GetUnusedUsingDirectives(this CompilationUnitSyntax root)
-        {
-            var result = new HashSet<SyntaxNode>();
-
-            var diagnostics = root
-                .GetDiagnostics()
-                .Where(d => d.Id == DiagnosticId.DUPLICATE_USING_DIRECTIVE || d.Id == DiagnosticId.UNNECESSARY_USING_DIRECTIVE);
-
-            foreach (var diagnostic in diagnostics)
-            {
-                if (root.FindNode(diagnostic.Location.SourceSpan) is UsingDirectiveSyntax syntax)
-                {
-                    result.Add(syntax);
-                }
-            }
-
-            return result;
-        }
+        internal static IEnumerable<SyntaxNode> DescendantNodesOfFirstLevel(this SyntaxNode node)
+            => node.DescendantNodes(descendIntoChildren: x => x == node);
     }
 }

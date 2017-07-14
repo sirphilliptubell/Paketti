@@ -16,8 +16,8 @@
         InterwovenTypeMembersPackage,
 
         /// <summary>
-        /// A package that contains a type. eg: instance/static class/struct/interface.
+        /// A package that contains a type that can contain members. eg: instance/static class/struct/interface.
         /// </summary>
-        TypePackage
+        MemberContainerPackage
     }
 }

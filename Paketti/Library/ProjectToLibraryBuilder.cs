@@ -55,14 +55,32 @@ namespace Paketti.Library
         /// </summary>
         /// <returns></returns>
         public Result<ILibrary> Build(ProjectContext projectContext)
-            => MakeTypesPartial(projectContext)
+            =>
+            //cleanup
+            MakeTypesPartial(projectContext)
             .OnSuccess(RemoveRegionDirectives)
             .OnSuccess(RemoveUnusedUsingDirectives)
+
+            //pull out extension methods which depend on interweaves
             .OnSuccess(CreateWalker)
-            .OnSuccess(ExtractExtensionMethods)
+            .OnSuccess(ExtractInterwovenExtensionMethods)
+
+            //pull out members which depend on interweaves
             .OnSuccess(CreateWalker)
-            .OnSuccess(ExtractTypeDependentMembers)
+            .OnSuccess(ExtractInterwovenTypeMembers)
+
+            //pull out remaining types
+            .OnSuccess(CreateWalker)
+            .OnSuccess(ExtractMemberContainers)
+
+            //cleanup
+            .OnSuccess(p => ProjectContext.Create(p))
+            .OnSuccess(RemoveUnusedUsingDirectives)
+
+            //allow verification if needed
+            .OnSuccess(pc => pc.Project)
             .OnSuccess(AfterRewrites)
+
             .OnSuccess(() => Result.Ok(_library));
 
         /// <summary>
@@ -130,11 +148,13 @@ namespace Paketti.Library
         /// </summary>
         /// <param name="walker">The walker.</param>
         /// <returns></returns>
-        private Result<Project> ExtractExtensionMethods(IDependencyWalker dependencyWalker)
+        private Result<Project> ExtractInterwovenExtensionMethods(IDependencyWalker dependencyWalker)
         {
             var rewriter = new ExtractInterwovenExtensionMethodsRewriter(_contentSelector);
 
-            var newProject = rewriter.Rewrite(dependencyWalker);
+            var result = rewriter.Rewrite(dependencyWalker);
+            if (result.IsFailure)
+                return result;
 
             var membersAndDependencies =
                 rewriter.
@@ -155,7 +175,7 @@ namespace Paketti.Library
                 }
             }
 
-            return newProject;
+            return result;
         }
 
         /// <summary>
@@ -163,12 +183,14 @@ namespace Paketti.Library
         /// </summary>
         /// <param name="walker">The walker.</param>
         /// <returns></returns>
-        private Result<Project> ExtractTypeDependentMembers(IDependencyWalker dependencyWalker)
+        private Result<Project> ExtractInterwovenTypeMembers(IDependencyWalker dependencyWalker)
         {
             //this rewriter will collect the information it removed during the rewrite.
             var rewriter = new ExtractInterwovenTypeMembersRewriter(_contentSelector);
 
             var result = rewriter.Rewrite(dependencyWalker);
+            if (result.IsFailure)
+                return result;
 
             var membersAndDependencies =
                 rewriter
@@ -187,6 +209,48 @@ namespace Paketti.Library
                 {
                     _library.AddOrMerge(new InterwovenTypeMembersPackage(item.Member.ContainingTypeContext.Value.Key, item.Member.Declaration.ToFormattedCode(), item.Descriptions));
                 }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Removes member containers while adding them to the library.
+        /// </summary>
+        /// <param name="walker">The walker.</param>
+        /// <returns></returns>
+        private Result<Project> ExtractMemberContainers(IDependencyWalker dependencyWalker)
+        {
+            var rewriter = new ExtractMemberContainersRewriter(_contentSelector);
+
+            var result = rewriter.Rewrite(dependencyWalker);
+            if (result.IsFailure)
+                return result;
+
+            Func<Document, IEnumerable<string>> getUsings = doc => doc.GetUsings().Select(x => x.Name.ToString());
+
+            foreach (var cls in rewriter.ExtractedClasses)
+            {
+                var usings = getUsings(cls.Document.Document);
+                var name = cls.Class.Name;
+                var genericArgCount = cls.Class.TypeArguments.Count();
+                var members = cls.Class.Declaration.DescendantNodesOfFirstLevel();
+                var declaration = cls.Class.Declaration.RemoveNodes(members, SyntaxRemoveOptions.KeepNoTrivia).ToFullString();
+                var content = string.Join(Environment.NewLine + Environment.NewLine, members.Select(x => x.ToFullString()));
+
+                _library.AddOrMerge(new MemberContainerPackage(MemberContainerKind.Class, usings, name, (byte)genericArgCount, declaration, content));
+            }
+
+            foreach (var str in rewriter.ExtractedStructs)
+            {
+                var usings = getUsings(str.Document.Document);
+                var name = str.Struct.Name;
+                var genericArgCount = str.Struct.TypeArguments.Count();
+                var members = str.Struct.Declaration.DescendantNodesOfFirstLevel();
+                var declaration = str.Struct.Declaration.RemoveNodes(members, SyntaxRemoveOptions.KeepNoTrivia).ToFullString();
+                var content = string.Join(Environment.NewLine + Environment.NewLine, members.Select(x => x.ToFullString()));
+
+                _library.AddOrMerge(new MemberContainerPackage(MemberContainerKind.Struct, usings, name, (byte)genericArgCount, declaration, content));
             }
 
             return result;
