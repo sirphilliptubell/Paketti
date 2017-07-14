@@ -26,12 +26,12 @@ namespace Paketti.Library
         /// </summary>
         /// <param name="package">The package.</param>
         /// <exception cref="System.ArgumentException">package</exception>
-        public void AddOrMerge(ExtensionMethodsPackage package)
+        public void AddOrMerge(InterwovenExtensionMethodsPackage package)
         {
             if (package == null) throw new ArgumentException(nameof(package));
 
             if (_packages.ContainsKey(package.Key))
-                _packages[package.Key] = ((ExtensionMethodsPackage)_packages[package.Key]).MergeWith(package);
+                _packages[package.Key] = ((InterwovenExtensionMethodsPackage)_packages[package.Key]).MergeWith(package);
             else
                 _packages[package.Key] = package;
         }
@@ -41,12 +41,12 @@ namespace Paketti.Library
         /// </summary>
         /// <param name="package">The package.</param>
         /// <exception cref="System.ArgumentException">package</exception>
-        public void AddOrMerge(OptionalTypeMembersPackage package)
+        public void AddOrMerge(InterwovenTypeMembersPackage package)
         {
             if (package == null) throw new ArgumentException(nameof(package));
 
             if (_packages.ContainsKey(package.Key))
-                _packages[package.Key] = ((OptionalTypeMembersPackage)_packages[package.Key]).MergeWith(package);
+                _packages[package.Key] = ((InterwovenTypeMembersPackage)_packages[package.Key]).MergeWith(package);
             else
                 _packages[package.Key] = package;
         }

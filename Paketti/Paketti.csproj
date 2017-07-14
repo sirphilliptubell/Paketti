@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Library\TypePackage.cs" />
     <Compile Remove="Rewriters\DeleteExtensionMethodsRewriter.cs" />
     <Compile Remove="Rewriters\DeleteFieldsRewriter.cs" />
     <Compile Remove="Rewriters\PackageExtensionMethodsRewriter.cs" />

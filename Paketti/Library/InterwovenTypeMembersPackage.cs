@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Paketti.Extensions;
+using System.Diagnostics;
 
 namespace Paketti.Library
 {
     /// <summary>
-    /// A package of the optional members for a Type.
+    /// A package of the instance/static type members which depend on interwoven types.
     /// </summary>
-    public class OptionalTypeMembersPackage :
-        IMergeablePackage<OptionalTypeMembersPackage>
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public class InterwovenTypeMembersPackage :
+        IMergeablePackage<InterwovenTypeMembersPackage>
     {
         /// <summary>
         /// Gets the name of the class / struct / interface.
@@ -31,33 +29,30 @@ namespace Paketti.Library
         public string Key { get; }
 
         /// <summary>
-        /// Gets the types this package depends on.
+        /// Gets the descriptions of the interweaves this package depends on.
         /// </summary>
-        /// <value>
-        /// The type dependencies.
-        /// </value>
-        public IReadOnlyList<string> TypeDependencies { get; }
+        public InterweaveDescriptions Descriptions { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ExtensionMethodsPackage"/> class.
+        /// Initializes a new instance of the <see cref="InterwovenExtensionMethodsPackage"/> class.
         /// </summary>
         /// <param name="content">The content.</param>
         /// <param name="kind">The kind.</param>
         /// <param name="typeDependencies">The type dependencies.</param>
-        public OptionalTypeMembersPackage(string typeName, string content, IEnumerable<string> typeDependencies)
+        public InterwovenTypeMembersPackage(string typeName, string content, InterweaveDescriptions descriptions)
         {
             TypeName = typeName ?? throw new ArgumentNullException(nameof(typeName));
             Content = content?.Trim() ?? throw new ArgumentNullException(nameof(content));
-            TypeDependencies = typeDependencies?.ToList() ?? throw new ArgumentNullException(nameof(typeDependencies));
+            Descriptions = descriptions ?? throw new ArgumentNullException(nameof(descriptions));
 
-            Key = $"{Kind} {typeName} {typeDependencies.OrderBy(x => x).ToCommaSeparated()}";
+            Key = $"{Kind} {typeName} {Descriptions.Key}";
         }
 
         /// <summary>
-        /// Returns <see cref="PackageKind.OptionalTypeMembersPackage"/>
+        /// Returns <see cref="PackageKind.InterwovenTypeMembersPackage"/>
         /// </summary>
         public PackageKind Kind
-            => PackageKind.OptionalTypeMembersPackage;
+            => PackageKind.InterwovenTypeMembersPackage;
 
         /// <summary>
         /// Appends the specified package to this one.
@@ -71,7 +66,7 @@ namespace Paketti.Library
         /// or
         /// TypeName does not match.
         /// </exception>
-        public OptionalTypeMembersPackage MergeWith(OptionalTypeMembersPackage package)
+        public InterwovenTypeMembersPackage MergeWith(InterwovenTypeMembersPackage package)
         {
             if (package == null) throw new ArgumentNullException(nameof(package));
             if (package.Key != this.Key) throw new ArgumentException("Key does not match.");
@@ -79,7 +74,10 @@ namespace Paketti.Library
 
             var newContent = this.Content.Trim() + Environment.NewLine + Environment.NewLine + package.Content;
 
-            return new OptionalTypeMembersPackage(TypeName, newContent, TypeDependencies.ToList());
+            return new InterwovenTypeMembersPackage(TypeName, newContent, Descriptions);
         }
+
+        private string DebuggerDisplay
+            => Key;
     }
 }

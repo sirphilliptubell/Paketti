@@ -1,18 +1,26 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Paketti.Contexts;
 
 namespace Paketti.Extensions
 {
-    public static class TypeContextExtensions
+    internal static class TypeContextExtensions
     {
         /// <summary>
-        /// Filters the types to only those that are not part of the CLR and are not generic parameters.
+        /// Gets a value indicating whether any of the types are an interweave.
         /// </summary>
-        /// <param name="item">The item.</param>
+        /// <param name="types"></param>
         /// <returns></returns>
-        public static IEnumerable<TypeContext> OnlyLocal(this IEnumerable<TypeContext> items)
-            => items
-            .Where(x => !x.IsCLRType && !x.IsGenericParameter);
+        public static bool AnyInterweaves(this IEnumerable<TypeContext> types)
+            => types.Any(x => x.IsInterweave);
+
+        /// <summary>
+        /// Gets only the TypeContexts that are interweaves.
+        /// </summary>
+        /// <param name="types"></param>
+        /// <returns></returns>
+        public static IEnumerable<TypeContext> OnlyInterweaves(this IEnumerable<TypeContext> types)
+            => types.Where(x => x.IsInterweave);
     }
 }

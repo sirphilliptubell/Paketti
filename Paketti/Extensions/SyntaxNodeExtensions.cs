@@ -264,5 +264,29 @@ namespace Paketti.Extensions
                 externs: Empty.Syntax,
                 usings: Empty.Syntax,
                 members: SyntaxFactory.List(members));
+
+        /// <summary>
+        /// Gets the unused (or duplicate) using directives.
+        /// </summary>
+        /// <param name="root">The document root.</param>
+        /// <returns></returns>
+        internal static IEnumerable<SyntaxNode> GetUnusedUsingDirectives(this CompilationUnitSyntax root)
+        {
+            var result = new HashSet<SyntaxNode>();
+
+            var diagnostics = root
+                .GetDiagnostics()
+                .Where(d => d.Id == DiagnosticId.DUPLICATE_USING_DIRECTIVE || d.Id == DiagnosticId.UNNECESSARY_USING_DIRECTIVE);
+
+            foreach (var diagnostic in diagnostics)
+            {
+                if (root.FindNode(diagnostic.Location.SourceSpan) is UsingDirectiveSyntax syntax)
+                {
+                    result.Add(syntax);
+                }
+            }
+
+            return result;
+        }
     }
 }

@@ -6,13 +6,18 @@
     public enum PackageKind
     {
         /// <summary>
-        /// A package that contains only extension methods.
+        /// A package that contains only extension methods that use interwoven types.
         /// </summary>
-        ExtensionMethods,
+        InterwovenExtensionMethods,
 
         /// <summary>
-        /// A package that contains optional members for a Type.
+        /// A package that contains instance/static interwoven members for a Type. Does not include extension methods.
         /// </summary>
-        OptionalTypeMembersPackage
+        InterwovenTypeMembersPackage,
+
+        /// <summary>
+        /// A package that contains a type. eg: instance/static class/struct/interface.
+        /// </summary>
+        TypePackage
     }
 }

@@ -25,23 +25,32 @@ namespace Paketti.Library
         private readonly Func<ProjectContext, IDependencyWalker> _walkerFactory;
         private readonly ILog _log;
         private readonly Action<T, string> _openSolution;
+        private readonly IPackageContentSelector _contentSelector;
+        private readonly Maybe<Action<Project>> _analyzeResult;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SolutionToLibraryBuilder{T}"/> class.
+        /// Initializes a new instance of the <see cref="SolutionToLibraryBuilder{T}" /> class.
         /// </summary>
         /// <param name="verifyingCompiler">The .net compiler used to verify builds.</param>
         /// <param name="solutionFile">The solution file.</param>
         /// <param name="workspaceFactory">The factory method that gets the workspace containing the solution.</param>
+        /// <param name="solutionRewriter">The solution rewriter.</param>
+        /// <param name="walkerFactory">The walker factory.</param>
+        /// <param name="contentSelector">The content selector.</param>
+        /// <param name="assemblyAnalyzer">The assembly analyzer.</param>
         /// <param name="log">The log.</param>
         /// <param name="openSolution">A method that opens the solution in the workspace, given the provided solution path (if required).</param>
-        /// <exception cref="System.ArgumentException">
-        /// verifyingCompiler
+        /// <exception cref="System.ArgumentException">verifyingCompiler
         /// or
         /// solutionFile
         /// or
         /// workspaceFactory
         /// or
-        /// log
+        /// log</exception>
+        /// <exception cref="System.ArgumentNullException">
+        /// assemblyAnalyzer
+        /// or
+        /// contentSelector
         /// </exception>
         public SolutionToLibraryBuilder(
             ICompiler verifyingCompiler,
@@ -49,6 +58,8 @@ namespace Paketti.Library
             Func<T> workspaceFactory,
             ISolutionRewriter solutionRewriter,
             Func<ProjectContext, IDependencyWalker> walkerFactory,
+            IPackageContentSelector contentSelector,
+            Maybe<Action<Project>> analyzeResult,
             ILog log, Action<T, string> openSolution = null)
         {
             _compiler = verifyingCompiler ?? throw new ArgumentException(nameof(verifyingCompiler));
@@ -57,7 +68,9 @@ namespace Paketti.Library
             _solutionRewriter = solutionRewriter ?? throw new ArgumentException(nameof(solutionRewriter));
             _walkerFactory = walkerFactory ?? throw new ArgumentException(nameof(walkerFactory));
             _log = log ?? throw new ArgumentException(nameof(log));
+            _contentSelector = contentSelector ?? throw new ArgumentNullException(nameof(contentSelector));
 
+            _analyzeResult = analyzeResult;
             _openSolution = openSolution;
         }
 
@@ -73,9 +86,9 @@ namespace Paketti.Library
             //Verify it compiles
             .OnSuccess(SolutionContext.Create)
             .OnSuccess(VerifySolutionCompiles)
-            .OnSuccess(sol => sol.ProjectContext)
 
             //finish
+            .OnSuccess(sol => sol.ProjectContext)
             .OnSuccess(BuildLibrary);
 
         /// <summary>
@@ -92,7 +105,7 @@ namespace Paketti.Library
         /// <param name="solutionContext">The solution context.</param>
         /// <returns></returns>
         private Result<ILibrary> BuildLibrary(ProjectContext projectContext)
-            => new ProjectToLibraryBuilder(new Library(), _solutionRewriter, _walkerFactory, _log)
+            => new ProjectToLibraryBuilder(new Library(), _contentSelector, _solutionRewriter, _walkerFactory, _log, _analyzeResult)
             .Build(projectContext);
 
         /// <summary>

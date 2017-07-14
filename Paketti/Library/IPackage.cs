@@ -32,11 +32,8 @@ namespace Paketti.Library
         string Content { get; }
 
         /// <summary>
-        /// Gets the types this package depends on.
+        /// Gets the descriptions of the interweaves this package depends on.
         /// </summary>
-        /// <value>
-        /// The type dependencies.
-        /// </value>
-        IReadOnlyList<string> TypeDependencies { get; }
+        InterweaveDescriptions Descriptions { get; }
     }
 }

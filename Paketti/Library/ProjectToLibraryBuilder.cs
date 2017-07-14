@@ -18,9 +18,11 @@ namespace Paketti.Library
         IProjectToLibraryBuilder
     {
         private readonly ILibrary _library;
+        private readonly IPackageContentSelector _contentSelector;
         private readonly ISolutionRewriter _solutionRewriter;
         private readonly Func<ProjectContext, IDependencyWalker> _walkerFactory;
         private readonly ILog _log;
+        private readonly Maybe<Action<Project>> _analyzeResult;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectToLibraryBuilder"/> class.
@@ -38,12 +40,14 @@ namespace Paketti.Library
         /// or
         /// log
         /// </exception>
-        public ProjectToLibraryBuilder(ILibrary library, ISolutionRewriter solutionRewriter, Func<ProjectContext, IDependencyWalker> walkerFactory, ILog log)
+        public ProjectToLibraryBuilder(ILibrary library, IPackageContentSelector contentSelector, ISolutionRewriter solutionRewriter, Func<ProjectContext, IDependencyWalker> walkerFactory, ILog log, Maybe<Action<Project>> analyzeResult)
         {
             _library = library ?? throw new ArgumentException(nameof(library));
+            _contentSelector = contentSelector ?? throw new ArgumentException(nameof(contentSelector));
             _solutionRewriter = solutionRewriter ?? throw new ArgumentException(nameof(solutionRewriter));
             _walkerFactory = walkerFactory ?? throw new ArgumentException(nameof(walkerFactory));
             _log = log ?? throw new ArgumentException(nameof(log));
+            _analyzeResult = analyzeResult;
         }
 
         /// <summary>
@@ -53,11 +57,26 @@ namespace Paketti.Library
         public Result<ILibrary> Build(ProjectContext projectContext)
             => MakeTypesPartial(projectContext)
             .OnSuccess(RemoveRegionDirectives)
+            .OnSuccess(RemoveUnusedUsingDirectives)
             .OnSuccess(CreateWalker)
             .OnSuccess(ExtractExtensionMethods)
             .OnSuccess(CreateWalker)
             .OnSuccess(ExtractTypeDependentMembers)
+            .OnSuccess(AfterRewrites)
             .OnSuccess(() => Result.Ok(_library));
+
+        /// <summary>
+        /// Calls the afterRewrites action provided by the constructor.
+        /// </summary>
+        /// <param name="project"></param>
+        /// <returns></returns>
+        private Result<Project> AfterRewrites(Project project)
+        {
+            if (_analyzeResult.HasValue)
+                _analyzeResult.Value(project);
+
+            return project;
+        }
 
         /// <summary>
         /// Ensures all the types in the project have the partial modifier.
@@ -74,6 +93,14 @@ namespace Paketti.Library
         /// <returns></returns>
         private Result<ProjectContext> RemoveRegionDirectives(ProjectContext projectContext)
             => _solutionRewriter.Rewrite(projectContext, new RemoveRegionRewriter());
+
+        /// <summary>
+        /// Removes the unused/duplicate Using Directives.
+        /// </summary>
+        /// <param name="projectContext">The project context.</param>
+        /// <returns></returns>
+        private Result<ProjectContext> RemoveUnusedUsingDirectives(ProjectContext projectContext)
+            => _solutionRewriter.Rewrite(projectContext, new RemoveUnusedUsingsRewriter());
 
         /// <summary>
         /// Creates a <see cref="IDependencyWalker"/> from a <see cref="ProjectContext"/>
@@ -105,7 +132,7 @@ namespace Paketti.Library
         /// <returns></returns>
         private Result<Project> ExtractExtensionMethods(IDependencyWalker dependencyWalker)
         {
-            var rewriter = new ExtractExtensionMethodsRewriter();
+            var rewriter = new ExtractInterwovenExtensionMethodsRewriter(_contentSelector);
 
             var newProject = rewriter.Rewrite(dependencyWalker);
 
@@ -115,17 +142,16 @@ namespace Paketti.Library
                 .Select(x => new
                 {
                     ExtensionMethod = x,
-                    Dependencies = dependencyWalker.GetTypeDependencies(x).OnlyLocal()
+                    Descriptions = new InterweaveDescriptions(dependencyWalker.GetTypeDependencies(x).OnlyInterweaves())
                 })
-                .GroupBy(x => x.Dependencies.GetCollectiveOrderedKey())
+                .GroupBy(x => x.Descriptions.Key)
                 .ToList();
 
             foreach (var memberAndDependencies in membersAndDependencies)
             {
                 foreach (var item in memberAndDependencies)
                 {
-                    var dependencies = item.Dependencies.Select(x => x.Key);
-                    _library.AddOrMerge(new ExtensionMethodsPackage(item.ExtensionMethod.Declaration.ToFormattedCode(), dependencies));
+                    _library.AddOrMerge(new InterwovenExtensionMethodsPackage(item.ExtensionMethod.Declaration.ToFormattedCode(), item.Descriptions));
                 }
             }
 
@@ -137,12 +163,12 @@ namespace Paketti.Library
         /// </summary>
         /// <param name="walker">The walker.</param>
         /// <returns></returns>
-        private Result<Project> ExtractTypeDependentMembers(IDependencyWalker walker)
+        private Result<Project> ExtractTypeDependentMembers(IDependencyWalker dependencyWalker)
         {
             //this rewriter will collect the information it removed during the rewrite.
-            var rewriter = new ExtractTypeDependenciesRewriter();
+            var rewriter = new ExtractInterwovenTypeMembersRewriter(_contentSelector);
 
-            var result = rewriter.Rewrite(walker);
+            var result = rewriter.Rewrite(dependencyWalker);
 
             var membersAndDependencies =
                 rewriter
@@ -150,17 +176,16 @@ namespace Paketti.Library
                 .Select(x => new
                 {
                     Member = x,
-                    Dependencies = walker.GetTypeDependencies(x).OnlyLocal()
+                    Descriptions = new InterweaveDescriptions(dependencyWalker.GetTypeDependencies(x).OnlyInterweaves())
                 })
-                .GroupBy(keySelector: x => x.Dependencies.OnlyLocal().GetCollectiveOrderedKey())
+                .GroupBy(x => x.Descriptions.Key)
                 .ToList();
 
             foreach (var memberAndDependency in membersAndDependencies)
             {
                 foreach (var item in memberAndDependency)
                 {
-                    var dependencies = item.Dependencies.Select(x => x.Key);
-                    _library.AddOrMerge(new OptionalTypeMembersPackage(item.Member.ContainingTypeContext.Value.Key, item.Member.Declaration.ToFormattedCode(), dependencies));
+                    _library.AddOrMerge(new InterwovenTypeMembersPackage(item.Member.ContainingTypeContext.Value.Key, item.Member.Declaration.ToFormattedCode(), item.Descriptions));
                 }
             }
 

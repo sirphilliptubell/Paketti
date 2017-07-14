@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Paketti.Extensions;
+using System.Diagnostics;
 
 namespace Paketti.Library
 {
     /// <summary>
-    /// A package of Extension Methods.
+    /// A package of Interwoven Extension Methods.
     /// </summary>
-    public class ExtensionMethodsPackage :
-        IMergeablePackage<ExtensionMethodsPackage>
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public class InterwovenExtensionMethodsPackage :
+        IMergeablePackage<InterwovenExtensionMethodsPackage>
     {
         /// <summary>
         /// Gets the content of the package.
@@ -28,32 +27,29 @@ namespace Paketti.Library
         public string Key { get; }
 
         /// <summary>
-        /// Gets the types this package depends on.
+        /// Gets the descriptions of the interweaves this package depends on.
         /// </summary>
-        /// <value>
-        /// The type dependencies.
-        /// </value>
-        public IReadOnlyList<string> TypeDependencies { get; }
+        public InterweaveDescriptions Descriptions { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ExtensionMethodsPackage"/> class.
+        /// Initializes a new instance of the <see cref="InterwovenExtensionMethodsPackage"/> class.
         /// </summary>
         /// <param name="content">The content.</param>
         /// <param name="kind">The kind.</param>
         /// <param name="typeDependencies">The type dependencies.</param>
-        public ExtensionMethodsPackage(string content, IEnumerable<string> typeDependencies)
+        public InterwovenExtensionMethodsPackage(string content, InterweaveDescriptions descriptions)
         {
             Content = content?.Trim() ?? throw new ArgumentNullException(nameof(content));
-            TypeDependencies = typeDependencies?.ToList() ?? throw new ArgumentNullException(nameof(typeDependencies));
+            Descriptions = descriptions ?? throw new ArgumentNullException(nameof(descriptions));
 
-            Key = $"{Kind} {typeDependencies.OrderBy(x => x).ToCommaSeparated()}";
+            Key = $"{Kind} {descriptions.Key}";
         }
 
         /// <summary>
-        /// Returns <see cref="PackageKind.ExtensionMethods"/>
+        /// Returns <see cref="PackageKind.InterwovenExtensionMethods"/>
         /// </summary>
         public PackageKind Kind
-            => PackageKind.ExtensionMethods;
+            => PackageKind.InterwovenExtensionMethods;
 
         /// <summary>
         /// Appends the specified package to this one.
@@ -63,14 +59,17 @@ namespace Paketti.Library
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">package</exception>
         /// <exception cref="System.ArgumentException">Key does not match.</exception>
-        public ExtensionMethodsPackage MergeWith(ExtensionMethodsPackage package)
+        public InterwovenExtensionMethodsPackage MergeWith(InterwovenExtensionMethodsPackage package)
         {
             if (package == null) throw new ArgumentNullException(nameof(package));
             if (this.Key != package.Key) throw new ArgumentException("Key does not match.");
 
             var newContent = this.Content.Trim() + Environment.NewLine + Environment.NewLine + package.Content;
 
-            return new ExtensionMethodsPackage(newContent, TypeDependencies);
+            return new InterwovenExtensionMethodsPackage(newContent, Descriptions);
         }
+
+        private string DebuggerDisplay
+            => Key;
     }
 }

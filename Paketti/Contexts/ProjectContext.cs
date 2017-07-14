@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Paketti.Primitives;
 
 namespace Paketti.Contexts
 {
@@ -62,6 +63,12 @@ namespace Paketti.Contexts
         /// </value>
         public CSharpCompilation NewCompilation
             => CSharpCompilation.Create(Project.AssemblyName, DocumentSyntaxTrees);
+
+        /// <summary>
+        /// Gets the name of the assembly for the project.
+        /// </summary>
+        public AssemblyName AssemblyName
+            => AssemblyName.Create(Project.AssemblyName).Value;
 
         /// <summary>
         /// Tries to create a ProjectContext using the specified project.

@@ -6,6 +6,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Paketti.Extensions;
+using Paketti.Library;
+using Paketti.Primitives;
 
 namespace Paketti.Contexts
 {
@@ -14,18 +16,8 @@ namespace Paketti.Contexts
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class TypeContext :
-        ITypeDependent,
-        IKeyable
+        ITypeDependent
     {
-        /// <summary>
-        /// Gets the names of Microsoft's CLR assemblies.
-        /// </summary>
-        private static IReadOnlyList<string> CLRAssemblyNames = new string[] {
-            "System.Runtime",
-            "System.Collections",
-            "System.Diagnostics.Debug"
-        };
-
         /// <summary>
         /// Gets the generic type arguments, if any.
         /// </summary>
@@ -119,9 +111,22 @@ namespace Paketti.Contexts
         /// <value>
         /// The name of the assembly.
         /// </value>
-        public string AssemblyName
-            // Symbol.ContainingAssembly may be null for if the Symbol is for an Array ("ArrayType")
-            => (Symbol.ContainingAssembly ?? Symbol.BaseType.ContainingAssembly).Name;
+        public AssemblyName AssemblyName
+            // Symbol.ContainingAssembly may be null if the Symbol is for an Array ("IArrayTypeSymbol")
+            => AssemblyName.Create((Symbol.ContainingAssembly ?? Symbol.BaseType.ContainingAssembly).Name).Value;
+
+        /// <summary>
+        /// Gets a value indicating whether this type is an interweave.
+        /// An interweave being any type that *may* not be part of the CLR.
+        /// Some types like ValueTuple are currently not part of the CLR but could be someday.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is interweave; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsInterweave
+            => !IsArray
+            && !IsGenericParameter
+            && !AssemblyName.IsCLR;
 
         /// <summary>
         /// Gets a value indicating whether this instance is an array.
@@ -131,15 +136,6 @@ namespace Paketti.Contexts
         /// </value>
         public bool IsArray
             => Symbol is IArrayTypeSymbol;
-
-        /// <summary>
-        /// Gets a value indicating whether this instance appears to be a .Net CLR type.
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance appears to be a .Net CLR type; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsCLRType
-            => CLRAssemblyNames.Contains(AssemblyName);
 
         /// <summary>
         /// Gets a value indicating whether this instance is generic.
@@ -165,7 +161,14 @@ namespace Paketti.Contexts
         ///   <c>true</c> if this instance is System.ValueTuple; otherwise, <c>false</c>.
         /// </value>
         public bool IsValueTuple
-            => AssemblyName == "System.ValueTuple";
+            => AssemblyName == AssemblyName.CLR_VALUE_TUPLE;
+
+        /// <summary>
+        /// Gets the containing namespace of the Symbol
+        /// </summary>
+        public string Namespace
+            //Arrays have a null ContainingNamespace
+            => Symbol.ContainingNamespace?.Name ?? string.Empty;
 
         /// <summary>
         /// Gets the name of the Symbol.
@@ -175,6 +178,66 @@ namespace Paketti.Contexts
         /// </value>
         public string Name
             => Symbol.Name;
+
+        /// <summary>
+        /// Gets the full name of the type.
+        /// </summary>
+        public string FullName
+            => GetFullName(includeGenericTypeParamNames: true);
+
+        /// <summary>
+        /// Gets the full name without the names of the generic type arguments.
+        /// </summary>
+        /// <value>
+        /// The full name without the names of the generic type arguments.
+        /// </value>
+        public string FullNameWithoutGenericNames
+            => GetFullName(includeGenericTypeParamNames: false);
+
+        /// <summary>
+        /// Gets the full name.
+        /// </summary>
+        /// <param name="includeGenericTypeParamNames">if set to <c>true</c> then include the generic type parameter names.</param>
+        /// <returns></returns>
+        private string GetFullName(bool includeGenericTypeParamNames)
+        {
+            var ns = Namespace.Length == 0
+                ? string.Empty
+                : Symbol.ContainingNamespace.Name + ".";
+
+            var argCountLess1 = TypeArguments.Count() - 1;
+            if (argCountLess1 == -1)
+                argCountLess1 = 0;
+
+            var typeArgs
+                = includeGenericTypeParamNames
+                ? TypeArguments.Select(x => x.Name).ToCommaSeparated() //comma separate the names
+                : string.Empty.PadRight(argCountLess1, ','); //only use commas, eg: Tuple<,,,>
+
+            var generic
+                = IsGeneric
+                ? $"<{typeArgs}>"
+                : string.Empty;
+
+            var vTuple
+                = IsValueTuple
+                ? $"ValueTuple<{typeArgs}>"
+                : string.Empty;
+
+            var array
+                = IsArray
+                ? $"{TypeArguments.Single().Name}[]"
+                : string.Empty;
+
+            return $"{AssemblyName}.{ns}{Name}{generic}{vTuple}{array}";
+        }
+
+        /// <summary>
+        /// Gets the description of the dependency.
+        /// </summary>
+        /// <returns></returns>
+        public InterweaveDescription GetDescription()
+            => new InterweaveDescription(this);
 
         /// <summary>
         /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.
@@ -202,33 +265,7 @@ namespace Paketti.Contexts
         /// A <see cref="System.String" /> that represents this instance.
         /// </returns>
         public override string ToString()
-        {
-            var generic
-                = IsGeneric
-                ? $"<{TypeArguments.Select(x => x.ToString()).ToCommaSeparated()}>"
-                : string.Empty;
-
-            var vTuple
-                = IsValueTuple
-                ? $"ValueTuple<{TypeArguments.Select(x => x.ToString()).ToCommaSeparated()}>"
-                : string.Empty;
-
-            var array
-                = IsArray
-                ? $"{TypeArguments.Single().Name}[]"
-                : string.Empty;
-
-            return $"{AssemblyName}.{Name}{generic}{vTuple}{array}";
-        }
-
-        /// <summary>
-        /// Gets the key that identifies an object.
-        /// </summary>
-        /// <value>
-        /// The object's key.
-        /// </value>
-        public string Key
-            => ToString();
+            => FullName;
 
         private string DebuggerDisplay
             => ToString();
