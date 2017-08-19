@@ -2,21 +2,21 @@
 
 namespace Paketti.Extensions
 {
-    public static class WorkspaceExtensions
+    public static class SolutionExtensions
     {
         /// <summary>
-        /// Creates a clone of the specified Workspace into an AdHocWorkspace.
+        /// Creates a clone of the specified Solution into an AdHocWorkspace.
         /// </summary>
         /// <param name="workspace">The workspace.</param>
         /// <returns></returns>
-        public static AdhocWorkspace CreateClone(this Workspace workspace)
+        public static AdhocWorkspace CloneIntoWorkspace(this Solution solution)
         {
             var result = new AdhocWorkspace();
 
-            var solutionInfo = SolutionInfo.Create(workspace.CurrentSolution.Id, workspace.CurrentSolution.Version);
+            var solutionInfo = SolutionInfo.Create(solution.Id, solution.Version);
             result.AddSolution(solutionInfo);
 
-            foreach (var project in workspace.CurrentSolution.Projects)
+            foreach (var project in solution.Projects)
             {
                 var projectInfo = ProjectInfo.Create(project.Id, project.Version, project.Name, project.AssemblyName, project.Language,
                     projectReferences: project.AllProjectReferences,

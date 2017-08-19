@@ -24,7 +24,7 @@ namespace Paketti.Library
         private readonly ISolutionRewriter _solutionRewriter;
         private readonly Func<ProjectContext, IDependencyWalker> _walkerFactory;
         private readonly ILog _log;
-        private readonly Action<T, string> _openSolution;
+        private readonly Func<T, string, Solution> _openSolution;
         private readonly IPackageContentSelector _contentSelector;
         private readonly Maybe<Action<Project>> _analyzeResult;
 
@@ -60,7 +60,8 @@ namespace Paketti.Library
             Func<ProjectContext, IDependencyWalker> walkerFactory,
             IPackageContentSelector contentSelector,
             Maybe<Action<Project>> analyzeResult,
-            ILog log, Action<T, string> openSolution = null)
+            ILog log,
+            Func<T, string, Solution> openSolution = null)
         {
             _compiler = verifyingCompiler ?? throw new ArgumentException(nameof(verifyingCompiler));
             _solutionFile = solutionFile ?? throw new ArgumentException(nameof(solutionFile));
@@ -96,8 +97,8 @@ namespace Paketti.Library
         /// </summary>
         /// <param name="ws">The ws.</param>
         /// <returns></returns>
-        private Result<AdhocWorkspace> CreateAdHocClone(Workspace ws)
-            => ws.CreateClone();
+        private Result<AdhocWorkspace> CreateAdHocClone(Solution solution)
+            => solution.CloneIntoWorkspace();
 
         /// <summary>
         /// Bruilds the library.
@@ -112,17 +113,17 @@ namespace Paketti.Library
         /// Gets the workspace.
         /// </summary>
         /// <returns></returns>
-        private Result<Workspace> GetWorkspaceFromSlnFile()
+        private Result<Solution> GetWorkspaceFromSlnFile()
         {
             if (!_solutionFile.Name.ToLowerInvariant().EndsWith(".sln"))
-                return Result.Fail<Workspace>("The specified solution file does not end with .sln");
+                return Result.Fail<Solution>("The specified solution file does not end with .sln");
 
             if (!_solutionFile.Exists)
-                return Result.Fail<Workspace>($"Solution file {_solutionFile.PhysicalPath} doesn't exist.");
+                return Result.Fail<Solution>($"Solution file {_solutionFile.PhysicalPath} doesn't exist.");
 
             var ws = _workspaceFactory();
-            _openSolution?.Invoke(ws, _solutionFile.PhysicalPath);
-            return ws;
+            var solution = _openSolution?.Invoke(ws, _solutionFile.PhysicalPath);
+            return solution;
         }
 
         /// <summary>
